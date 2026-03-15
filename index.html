@@ -21,7 +21,7 @@
         <div class="bg-white p-6 rounded-2xl shadow-md border border-green-100 mb-6">
             <div class="flex justify-between items-center mb-2">
                 <h1 class="text-xl font-bold text-green-800">🔍 Consultar Genética (Pasaporte)</h1>
-                <span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-green-200">v2.5 🚀</span>
+                <span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-green-200">v2.6 Thumbnail 📸</span>
             </div>
             <p class="text-sm text-gray-500 mb-4">Escanea o introduce el código QR de la Genética Base para visualizar su ficha técnica, fotos y documentos adjuntos.</p>
             
@@ -55,7 +55,7 @@
                 <!-- Badge de Fase y Versión -->
                 <div class="flex items-center justify-between mb-4">
                     <div id="phaseBadge" style="display:none;"></div>
-                    <span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-green-200">v2.5 Drive-Clean 🚀</span>
+                    <span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-green-200">v2.6 Thumbnail 📸</span>
                 </div>
 
                 <!-- Detalles de la Fase Actual (Limpios de Coda) -->
@@ -227,14 +227,16 @@
                         
                         console.log("Procesando URL de imagen:", cleanUrl);
 
-                        // Si es un link de visualización directa de Drive (uc o lh3), lo dejamos como está
-                        if (cleanUrl.includes('lh3.googleusercontent.com') || cleanUrl.includes('drive.google.com/uc')) return cleanUrl;
+                        // Si es un link de visualización directa de Drive (uc, thumbnail o lh3), lo dejamos como está
+                        if (cleanUrl.includes('lh3.googleusercontent.com') || 
+                            cleanUrl.includes('drive.google.com/uc') || 
+                            cleanUrl.includes('drive.google.com/thumbnail')) return cleanUrl;
                         
-                        // Si es un link de Drive estándar, lo transformamos
+                        // Si es un link de Drive estándar, lo transformamos a thumbnail (más estable que uc)
                         if (cleanUrl.includes('drive.google.com')) {
                             const fileId = cleanUrl.match(/\/d\/([^/]+)/) || cleanUrl.match(/id=([^&]+)/);
                             if (fileId && fileId[1]) {
-                                return `https://drive.google.com/uc?id=${fileId[1]}`;
+                                return `https://drive.google.com/thumbnail?id=${fileId[1]}&sz=w1000`;
                             }
                         }
                         return cleanUrl;

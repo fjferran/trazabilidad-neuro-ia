@@ -152,8 +152,8 @@ function uploadFile(codaField, fileName, folder) {
     }
   }
 
-  // IMPORTANTE: Devolvemos el enlace de "visualización directa" para que el visor pueda mostrar la imagen
-  return "https://drive.google.com/uc?id=" + file.getId();
+  // Devolvemos el enlace de "miniatura" grande, que es más estable para mostrar en webs (evita bloqueos ORB)
+  return "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w1000";
 }
 
 /**
