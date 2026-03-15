@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SOP Trazabilidad Canna</title>
+    <!-- Tailwind CSS (Vía CDN para rapidez en esta prueba local, en pro pasar a build) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden pb-4">
+        
+        <!-- Header -->
+        <div class="bg-green-700 p-5 text-white">
+            <h1 class="text-xl font-bold">📲 Trazabilidad y Labores</h1>
+            <p class="text-sm text-green-100 opacity-90 mt-1">Registra tareas para Coda / Sheets</p>
+        </div>
+
+        <!-- Formulario -->
+        <form id="activityForm" class="p-6 space-y-5">
+
+            <!-- LOTE ACTIVO (QR Scanner Simulado) -->
+            <div>
+                <label class="block text-sm font-bold text-gray-800 mb-1">Código QR del Lote / Planta Activa</label>
+                <div class="relative rounded-md shadow-sm">
+                    <input type="text" id="qrId" required
+                        class="w-full pl-3 pr-10 py-3 font-mono border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg transition"
+                        placeholder="Escanea o teclea (Ej: PAC-Veg-1)">
+                    <!-- Icono de cámara simulado -->
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operario -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">📌 Operario Responsable</label>
+                <select id="operario" required class="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <option value="" disabled selected>Selecciona un usuario...</option>
+                    <option value="Javier F.">Javier F.</option>
+                    <option value="Director Cultivo">Director Cultivo</option>
+                    <option value="Encargado Sala">Encargado Sala</option>
+                    <option value="Responsable Laboratorio">Responsable Laboratorio</option>
+                </select>
+            </div>
+
+            <hr class="border-gray-200">
+
+            <!-- Tarea / Acción -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">🛠️ Acción / Tarea a Realizar</label>
+                <select id="accion" required onchange="actualizarCamposDinamicos()" class="w-full border-2 border-green-600 bg-green-50 font-semibold text-green-900 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <!-- Agronómicas Base -->
+                    <option value="Riego / Fertirriego">💧 Riego / Fertirriego</option>
+                    <option value="Labores Culturales">✂️ Labores Culturales (Poda, Entutorado...)</option>
+                    <option value="Manejo Integrado de Plagas (IPM)">🐛 MIP (Plagas y Enfermedades)</option>
+                    <!-- Trazabilidad Coda -->
+                    <option value="Cambio de Fase / Traspaso Lote">🔄 Cambio de Fase / Creación Lote</option>
+                    <option value="Cosecha (Material a Secadero)">🍁 Registro de Cosecha</option>
+                    <option value="Entrega a Quimica (Laboratorio)">🧪 Entrega de Material a Química</option>
+                    <option value="Baja / Descarte">🗑️ Baja / Muerte de Planta</option>
+                </select>
+            </div>
+
+            <!-- ================= CAMPOS DINÁMICOS ================= -->
+            
+            <div id="dynamic-fields" class="space-y-4 bg-gray-50 p-4 border border-gray-200 rounded-lg">
+                <!-- Se inyectarán vía JS -->
+            </div>
+
+            <!-- ================= FIN CAMPOS DINÁMICOS ================= -->
+
+
+            <!-- Botón de Envío -->
+            <button type="submit" id="submitBtn"
+                class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg transition-colors flex justify-center items-center text-lg">
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Guardar Registro</span>
+            </button>
+            
+            <div id="statusMessage" class="hidden text-center text-sm font-medium p-3 rounded-lg mt-2"></div>
+        </form>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        // ✅ URL EXACTA QUE PROPORCIONASTE
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycbxzJZjR0z8C-QBcQ28HC0m-DIQefgr3bpeztrriY_9uVp9x_yD0BsYahjYZ9Ukxs7UZWQ/exec";
+
+        // DICCIONARIO DE CAMPOS POR ACCIÓN
+        const schemas = {
+            "Riego / Fertirriego": `
+                <div><label class="block text-sm text-gray-600 mb-1">Solución (ml o L/planta)</label><input type="number" step="0.1" name="riego_volumen" class="w-full border p-2 rounded" placeholder="Ej: 500"></div>
+                <div class="flex gap-2">
+                    <div class="w-1/2"><label class="block text-sm text-gray-600 mb-1">pH</label><input type="number" step="0.1" name="riego_ph" class="w-full border p-2 rounded" placeholder="6.0"></div>
+                    <div class="w-1/2"><label class="block text-sm text-gray-600 mb-1">EC (mS/cm)</label><input type="number" step="0.1" name="riego_ec" class="w-full border p-2 rounded" placeholder="1.2"></div>
+                </div>
+            `,
+            "Labores Culturales": `
+                <div><label class="block text-sm text-gray-600 mb-1">Tipo de Labor</label>
+                    <select name="labor_tipo" class="w-full border p-2 rounded">
+                        <option>Poda Apical</option><option>Poda de Bajos (Lollipopping)</option><option>Entutorado</option><option>Trasplante</option><option>Toma de Esquejes</option><option>Otra...</option>
+                    </select>
+                </div>
+                <div><label class="block text-sm text-gray-600 mb-1">Detalles / Biomasa retirada</label><textarea name="labor_detalles" class="w-full border p-2 rounded" placeholder="Ej: Retirados 50g follaje"></textarea></div>
+            `,
+            "Manejo Integrado de Plagas (IPM)": `
+                <div><label class="block text-sm text-gray-600 mb-1">Plaga u Hongo detectado</label><input type="text" name="ipm_plaga" class="w-full border p-2 rounded" placeholder="Botrytis, Trips, Araña..."></div>
+                <div><label class="block text-sm text-gray-600 mb-1">Producto de Control / Preventivo</label><input type="text" name="ipm_producto" class="w-full border p-2 rounded" placeholder="Aceite de neem, Bacillus..."></div>
+                <div class="flex gap-2">
+                    <div class="w-1/2"><label class="block text-sm text-gray-600 mb-1">Dosis (ml/L)</label><input type="number" step="0.1" name="ipm_dosis" class="w-full border p-2 rounded"></div>
+                    <div class="w-1/2"><label class="block text-sm text-gray-600 mb-1">Aplicación</label>
+                        <select name="ipm_metodo" class="w-full border p-2 rounded"><option>Foliar</option><option>Sustrato</option></select>
+                    </div>
+                </div>
+            `,
+            "Cambio de Fase / Traspaso Lote": `
+                <div class="bg-blue-50 border-blue-200 border p-3 rounded mb-2 text-sm text-blue-800">
+                    Estás iniciando una nueva fase. El QR <b>nuevo</b> debe estar arriba. Escanea aquí el de la bandeja antigua de donde viene.
+                </div>
+                <div><label class="block text-xs font-bold text-gray-600 mb-1 bg-yellow-200 p-1 inline-block uppercase">QR Origen (Padre)</label><input type="text" name="traspaso_origen" required class="w-full border border-yellow-400 focus:ring-yellow-500 font-mono p-2 rounded bg-yellow-50" placeholder="Ej: PM-PAC-1"></div>
+                <div><label class="block text-sm text-gray-600 mb-1 mt-2">Nº Plantas Vivas / Pasadas</label><input type="number" name="traspaso_cantidad" required class="w-full border p-2 rounded" placeholder="Ej: 90"></div>
+                <div><label class="block text-sm text-gray-600 mb-1 mt-2">Ubicación Destino</label><input type="text" name="traspaso_ubicacion" class="w-full border p-2 rounded" placeholder="Sala X"></div>
+            `,
+            "Cosecha (Material a Secadero)": `
+                <div><label class="block text-sm font-bold text-gray-600 mb-1">Peso Húmedo Total (Gramos)</label><input type="number" step="1" name="cosecha_peso_humedo" class="w-full border-2 border-purple-300 p-3 rounded text-lg font-bold" placeholder="Ej: 1540"></div>
+                <div><label class="block text-sm text-gray-600 mb-1 mt-2">Nº Total de Bolsas/Cajas Envasadas</label><input type="number" name="cosecha_bolsas" class="w-full border p-2 rounded" placeholder="Ej: 3"></div>
+            `,
+            "Entrega a Quimica (Laboratorio)": `
+                <div><label class="block text-sm font-bold text-gray-600 mb-1">Peso Seco Total Entregado (g)</label><input type="number" step="0.1" name="quimica_peso" required class="w-full border p-2 rounded"></div>
+                <div><label class="block text-sm text-gray-600 mb-1 mt-2">Quimiotipo Identificado</label>
+                    <select name="quimica_tipo" class="w-full border p-2 rounded"><option>THC Dominante</option><option>CBD Dominante</option><option>Equilibrado THC:CBD</option><option>CBG</option></select>
+                </div>
+                <div><label class="block text-sm text-gray-600 mb-1 mt-2">Responsable de Recepción en Química</label><input type="text" name="quimica_receptor" required class="w-full border p-2 rounded" placeholder="Nombre de quien recibe"></div>
+            `,
+            "Baja / Descarte": `
+                <div class="bg-red-50 border border-red-200 p-3 rounded mb-2">
+                    <label class="block text-sm text-red-800 font-bold mb-1">Motivo principal de Baja</label>
+                    <select name="baja_motivo" required class="w-full border p-2 rounded border-red-300">
+                        <option>Plaga/Enfermedad grave</option><option>Hermafroditismo / Macho</option><option>Rotura Accidental</option><option>Error de riego/nutrición</option><option>Baja viabilidad (Enraizado fallido)</option>
+                    </select>
+                </div>
+                <div><label class="block text-sm text-gray-600 mb-1 mt-2">Destino Físico (Bolsa de desecho, Compost...)</label><input type="text" name="baja_destino" required class="w-full border p-2 rounded"></div>
+            `
+        };
+
+        // Función para cambiar los campos a la vista
+        function actualizarCamposDinamicos() {
+            const accionSelect = document.getElementById('accion').value;
+            const container = document.getElementById('dynamic-fields');
+            
+            if(schemas[accionSelect]) {
+                container.innerHTML = schemas[accionSelect];
+                container.style.display = "block";
+            } else {
+                container.innerHTML = "";
+                container.style.display = "none";
+            }
+        }
+
+        // Llamar por defecto al iniciar la pagina para Riego (la opción the primera)
+        actualizarCamposDinamicos();
+
+        // ------------------ ENVÍO DE DATOS ------------------
+        document.getElementById('activityForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            const statusDiv = document.getElementById('statusMessage');
+            
+            // Recoger campos estáticos
+            const qrId = document.getElementById('qrId').value.trim();
+            const operario = document.getElementById('operario').value;
+            const accion = document.getElementById('accion').value;
+            
+            // Recoger campos dinámicos
+            const dynamicInputs = document.querySelectorAll('#dynamic-fields input, #dynamic-fields select, #dynamic-fields textarea');
+            let detalles = {};
+            dynamicInputs.forEach(input => {
+                detalles[input.name] = input.value;
+            });
+
+            // Serializar el objeto de detalles a un JSON stringificado bonito para que quepa en 1 columna de Sheet
+            const valorSerializado = JSON.stringify(detalles);
+
+            const data = {
+                qr_id: qrId,
+                operario: operario,
+                accion: accion,
+                valor: valorSerializado, // <-- ENVIAMOS EL JSON EN STR
+                timestamp: new Date().toISOString()
+            };
+
+            // UI UX: Mostrar "Enviando"
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3 border-t-2 border-white rounded-full" viewBox="0 0 24 24"></svg> Enviando...`;
+            
+            try {
+                // Hacer el POST a Google Apps Script
+                const response = await fetch(GOOGLE_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // OBLIGATORIO para evitar bloqueos CORS con Google Apps Script desde HTML directo
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                // Success visual (no-cors no nos deja leer el body devuelto, así que asumimos exito si no salta el try/catch de fetch)
+                statusDiv.innerText = `✅ Tarea '${accion}' registrada para el lote ${qrId}`;
+                statusDiv.className = "text-center text-sm font-medium p-3 rounded-lg mt-3 bg-green-100 text-green-800";
+                statusDiv.classList.remove('hidden');
+
+                // Limpiar solo algunos campos para que pueda seguir trabajando en el mismo Lote
+                document.getElementById('dynamic-fields').querySelectorAll('input, textarea').forEach(i => i.value = '');
+
+            } catch (error) {
+                console.error("Error enviando:", error);
+                statusDiv.innerText = "❌ Error al enviar datos: Verifica tu conexión y la URL.";
+                statusDiv.className = "text-center text-sm font-medium p-3 rounded-lg mt-3 bg-red-100 text-red-800";
+                statusDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>Guardar Registro</span>`;
+                
+                setTimeout(() => { statusDiv.classList.add('hidden'); }, 6000);
+            }
+        });
+    </script>
+</body>
+</html>

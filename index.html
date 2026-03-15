@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌿 Visor de Genética y Pasaporte Vegetal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0fdf4; }
+        .tab-active { border-bottom: 3px solid #16a34a; color: #16a34a; }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center min-h-screen">
+
+    <div class="w-full max-w-lg">
+        
+        <!-- Buscador -->
+        <div class="bg-white p-6 rounded-2xl shadow-md border border-green-100 mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <h1 class="text-xl font-bold text-green-800">🔍 Consultar Genética (Pasaporte)</h1>
+                <span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-green-200">v2.5 🚀</span>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">Escanea o introduce el código QR de la Genética Base para visualizar su ficha técnica, fotos y documentos adjuntos.</p>
+            
+            <form id="searchForm" class="flex gap-2">
+                <input type="text" id="qrInput" required
+                    class="flex-1 font-mono border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-green-500 transition"
+                    placeholder="Ej: GEN-1 o QR del Cultivar">
+                <button type="submit" id="searchBtn"
+                    class="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-lg shadow transition">
+                    Ver
+                </button>
+            </form>
+            <div id="loading" class="hidden text-center text-sm font-medium text-green-600 mt-3 animate-pulse">
+                Buscando Genética en la base de datos...
+            </div>
+            <div id="error" class="hidden text-center text-sm font-medium text-red-600 mt-3 p-3 bg-red-50 rounded"></div>
+        </div>
+
+        <!-- Ficha de la Planta (Oculta al inicio) -->
+        <div id="plantCard" class="hidden bg-white shadow-xl rounded-2xl overflow-hidden border border-green-200">
+            <!-- Imagen Hero -->
+            <div class="h-64 bg-gray-200 relative">
+                <img id="plantImage" src="" alt="Foto Genética" class="w-full h-full object-cover">
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                    <span id="plantId" class="inline-block px-2 py-1 bg-green-500 text-white text-xs font-bold rounded uppercase tracking-wide mb-1">GEN-X</span>
+                    <h2 id="plantName" class="text-3xl font-bold text-white leading-tight">Nombre Variedad</h2>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <!-- Badge de Fase y Versión -->
+                <div class="flex items-center justify-between mb-4">
+                    <div id="phaseBadge" style="display:none;"></div>
+                    <span class="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase tracking-widest border border-green-200">v2.5 Drive-Clean 🚀</span>
+                </div>
+
+                <!-- Detalles de la Fase Actual (Limpios de Coda) -->
+                <div id="phaseDetails" class="mt-4 space-y-3 bg-green-50 p-4 rounded-xl border border-green-100" style="display:none;">
+                    <h3 class="text-[10px] font-black text-green-800 uppercase tracking-widest">Información del Lote</h3>
+                    <div id="phaseFields" class="grid grid-cols-1 gap-1 text-sm text-green-900 font-medium"></div>
+                </div>
+
+                <!-- Trazabilidad / Origen (Simple) -->
+                <div id="originContainer" class="mt-4 bg-amber-50 p-4 rounded-xl border border-amber-200" style="display:none;">
+                    <h3 class="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
+                        Lote de Origen
+                    </h3>
+                    <div id="originLink" class="text-sm font-bold text-amber-900 bg-white p-2 border border-amber-300 rounded shadow-sm inline-block cursor-pointer hover:bg-amber-100 transition">
+                    </div>
+                </div>
+
+                <!-- Info Principal -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-green-50 p-3 rounded-lg">
+                        <p class="text-xs text-green-800 uppercase font-bold mb-1">Linaje / Obtentor</p>
+                        <p id="plantLineage" class="text-sm text-gray-800 font-medium">-</p>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-lg">
+                        <p class="text-xs text-purple-800 uppercase font-bold mb-1">Quimiotipo</p>
+                        <p id="plantChemo" class="text-sm text-gray-800 font-medium">-</p>
+                    </div>
+                </div>
+
+                <!-- Perfiles -->
+                <div class="border-t border-gray-100 pt-4">
+                    <h3 class="text-sm font-bold text-gray-800 mb-2">🧪 Perfil Químico</h3>
+                    <div class="text-sm text-gray-600 space-y-1">
+                        <p><span class="font-semibold text-gray-700">Cannabinoides:</span> <span id="plantCann">-</span></p>
+                        <p><span class="font-semibold text-gray-700">Terpenos:</span> <span id="plantTerfs">-</span></p>
+                    </div>
+                </div>
+
+                <!-- Notas -->
+                <div class="border-t border-gray-100 pt-4">
+                    <h3 class="text-sm font-bold text-gray-800 mb-2">📝 Notas / INASE</h3>
+                    <p id="plantNotes" class="text-sm text-gray-600 leading-relaxed">-</p>
+                </div>
+
+                <!-- Historial de Labores (Timeline) -->
+                <div id="historyContainer" class="mt-8 bg-gray-50 p-6 rounded-2xl border border-gray-200 hidden">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Historial de Labores
+                    </h3>
+                    <div id="historyTimeline" class="space-y-4 border-l-2 border-green-200 ml-3 pl-6">
+                        <!-- Items de historial -->
+                    </div>
+                </div>
+
+                <!-- Enlaces PDF / Docs -->
+                <div id="docsContainer" class="mt-8 border-t border-gray-100 pt-4 hidden">
+                    <h3 class="text-sm font-bold text-gray-800 mb-3">📄 Documentación y PDFs adjuntos</h3>
+                    <div id="docsList" class="flex flex-col gap-2">
+                        <!-- Links inyectados via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Función global para buscar por QR (permitir navegación interna)
+        function searchByQR(qrCode) {
+            document.getElementById('qrInput').value = qrCode;
+            document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+            // Scroll arriba para ver los nuevos resultados
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // LA MISMA URL DEL POST (El Google Script sabe distinguir entre GET y POST)
+        const GOOGLE_APP_URL = "https://script.google.com/macros/s/AKfycby90IoUIIbLH-cfnfJhB-WQv5u1na2HvB5NDA2b116Ok0ugv-kSRaudZtteLUVmzTG-4w/exec";
+
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const qr = document.getElementById('qrInput').value.trim();
+            const btn = document.getElementById('searchBtn');
+            const loading = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const card = document.getElementById('plantCard');
+
+            // UI Feedback
+            card.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            loading.classList.remove('hidden');
+            btn.disabled = true;
+
+            try {
+                // Hacer el GET a Apps Script (No-CORS no permite leer respuestas, necesitamos hacerlo vía proxy o JSONP).
+                // Al ser una App Script web abierta en 'Cualquier Persona' y un GET, SÍ podemos usar CORS normal sacando el no-cors.
+                const response = await fetch(`${GOOGLE_APP_URL}?qr=${encodeURIComponent(qr)}&v=${Date.now()}`, {
+                    method: 'GET'
+                });
+                
+                const json = await response.json();
+                console.log("📦 Datos recibidos de la API:", json);
+
+                if (json.status === "success") {
+                    const mainData = json.data;
+                    const type = json.type;
+                    // Si es un lote, los datos de genética están en Genetica_Info. Si es genética pura, están en la raíz.
+                    const g = type === "Genética" ? mainData : (mainData.Genetica_Info || {});
+                    
+                    // Mostrar Fase actual
+                    const badge = document.getElementById('phaseBadge');
+                    badge.innerText = type.toUpperCase();
+                    badge.className = `inline-block px-3 py-1 rounded-full text-xs font-bold ${type === "Genética" ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'} mb-4`;
+                    badge.style.display = 'inline-block';
+
+                    // Llenar Datos de la Fase (si no es genética pura)
+                    const detailsBox = document.getElementById('phaseDetails');
+                    const fieldsContainer = document.getElementById('phaseFields');
+                    fieldsContainer.innerHTML = '';
+                    
+                    if (type !== "Genética") {
+                        detailsBox.style.display = 'block';
+                        const exclude = ['QR_ID', 'Variedad', 'Genetica_Info', 'Imagen_URL'];
+                        Object.entries(mainData).forEach(([key, val]) => {
+                            if (!exclude.includes(key) && val) {
+                                const row = document.createElement('div');
+                                row.className = 'flex justify-between border-b border-blue-100 pb-1';
+                                row.innerHTML = `<span class="font-semibold">${key}:</span> <span>${val}</span>`;
+                                fieldsContainer.appendChild(row);
+                            }
+                        });
+                    } else {
+                        detailsBox.style.display = 'none';
+                    }
+
+                    // --- NUEVO: Manejo de Origen / Trazabilidad Hacia Atrás ---
+                    const originBox = document.getElementById('originContainer');
+                    const originLink = document.getElementById('originLink');
+                    const parentId = mainData.Origen_ID;
+
+                    if (parentId && parentId !== "N/A" && parentId !== "Sin Origen" && parentId !== "-") {
+                        originBox.style.display = 'block';
+                        originLink.innerText = parentId;
+                        originLink.onclick = () => searchByQR(parentId);
+                    } else if (type !== "Genética" && mainData.Variedad && mainData.Variedad !== "Lote en Seguimiento") {
+                        originBox.style.display = 'block';
+                        originLink.innerHTML = `<span class="text-[10px] font-normal text-gray-400 block">Ver ficha de Genética Base</span>${mainData.Variedad}`;
+                        originLink.onclick = () => searchByQR(mainData.Variedad);
+                    } else {
+                        originBox.style.display = 'none';
+                    }
+
+                    // Llenar Ficha principal (ID del QR escaneado)
+                    document.getElementById('plantId').innerText = mainData.QR_ID || "N/A";
+                    document.getElementById('plantName').innerText = mainData.Variedad || "Sin Nombre";
+                    
+                    // Llenar datos técnicos (de la genética)
+                    document.getElementById('plantLineage').innerText = g.Linaje || "No especificado";
+                    document.getElementById('plantChemo').innerText = g.Quimiotipo || "Desconocido";
+
+                    // Helper para transformar links de Google Drive en links de imagen directos
+                    const getDirectDriveLink = (url) => {
+                        if (!url) return url;
+                        // Limpieza extrema por si vienen comillas en el JSON del Sheet
+                        let cleanUrl = String(url).replace(/["'`]/g, "").trim();
+                        
+                        console.log("Procesando URL de imagen:", cleanUrl);
+
+                        // Si es un link de visualización directa de Drive (uc o lh3), lo dejamos como está
+                        if (cleanUrl.includes('lh3.googleusercontent.com') || cleanUrl.includes('drive.google.com/uc')) return cleanUrl;
+                        
+                        // Si es un link de Drive estándar, lo transformamos
+                        if (cleanUrl.includes('drive.google.com')) {
+                            const fileId = cleanUrl.match(/\/d\/([^/]+)/) || cleanUrl.match(/id=([^&]+)/);
+                            if (fileId && fileId[1]) {
+                                return `https://drive.google.com/uc?id=${fileId[1]}`;
+                            }
+                        }
+                        return cleanUrl;
+                    };
+
+                    // Helper para renderizar enlaces de descarga
+                    const makeLink = (label, url) => {
+                        if (!url) return "ND";
+                        let cleanUrl = String(url).replace(/["'`]/g, "").trim();
+                        if (cleanUrl.startsWith('http')) {
+                            return `<a href="${cleanUrl}" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium underline mt-1">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Ver/Descargar ${label}
+                            </a>`;
+                        }
+                        return cleanUrl || "ND";
+                    };
+
+                    document.getElementById('plantCann').innerHTML = makeLink("Perfil", g.Cannabinoides);
+                    document.getElementById('plantTerfs').innerHTML = makeLink("Perfil", g.Terpenos);
+                    document.getElementById('plantNotes').innerHTML = makeLink("Documento", g.Notas);
+                    
+                    // Imagen Hero (De la genética)
+                    const imgEl = document.getElementById('plantImage');
+                    let imgUrl = g.Imagen_URL || mainData.Imagen_URL;
+                    
+                    if(imgUrl) {
+                        const directLink = getDirectDriveLink(imgUrl);
+                        console.log("URL Final cargada en <img>:", directLink);
+                        imgEl.src = directLink;
+                        imgEl.style.display = 'block';
+                    } else {
+                        imgEl.style.display = 'none';
+                    }
+
+                    // Historial / Timeline
+                    const historyContainer = document.getElementById('historyContainer');
+                    const historyTimeline = document.getElementById('historyTimeline');
+                    historyTimeline.innerHTML = '';
+                    
+                    if (mainData.Historial && mainData.Historial.length > 0) {
+                        historyContainer.classList.remove('hidden');
+                        mainData.Historial.forEach(item => {
+                            const dateStr = item.Fecha || item.Timestamp || item.timestamp || "S/F";
+                            const formattedDate = new Date(dateStr).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                            
+                            let colorClass = "blue";
+                            let icon = "🛠️";
+                            const itemAccion = item.Acción || item.Accion || "Tarea";
+                            const itemOperario = item.Operario || item.operario || "Anonimo";
+
+                            if (item._source === "Pest") {
+                                colorClass = "red";
+                                icon = "🐛";
+                            } else if (item._source === "Mobile" || item._source === "Labour") {
+                                colorClass = "green";
+                            }
+
+                            let contentHtml = `<p class="font-bold text-${colorClass}-800 flex items-center">${icon} ${itemAccion}</p>
+                                               <p class="text-xs text-gray-700 whitespace-pre-wrap mt-1">${item.Valor || item.valor || ""}</p>`;
+
+                            const entry = document.createElement('div');
+                            entry.className = 'relative';
+                            entry.innerHTML = `
+                                <div class="absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white bg-green-500 shadow-sm"></div>
+                                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                                    <div class="text-[10px] font-bold text-gray-400 uppercase mb-1">${formattedDate} • ${itemOperario}</div>
+                                    ${contentHtml}
+                                </div>
+                            `;
+                            historyTimeline.appendChild(entry);
+                        });
+                    } else {
+                        historyContainer.classList.add('hidden');
+                    }
+
+                    // Botones PDF
+                    const docsList = document.getElementById('docsList');
+                    const docsContainer = document.getElementById('docsContainer');
+                    docsList.innerHTML = '';
+                    
+                    if (mainData.Documentos_URL) {
+                        // Coda a veces devuelve multiples URLs separadas por coma si se parseó así
+                        const urls = mainData.Documentos_URL.split(',');
+                        urls.forEach((url, i) => {
+                            if(url.trim().startsWith('http')) {
+                                docsList.innerHTML += `
+                                    <a href="${url.trim()}" target="_blank" class="flex items-center p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition font-medium text-sm">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        📄 Ver Documento de Cultivar ${i+1}
+                                    </a>`;
+                            }
+                        });
+                        if(docsList.innerHTML !== '') docsContainer.classList.remove('hidden');
+                        else docsContainer.classList.add('hidden');
+                    } else {
+                        docsContainer.classList.add('hidden');
+                    }
+
+                    // Mostrar todo
+                    card.classList.remove('hidden');
+                } else {
+                    errorDiv.innerText = json.message || "Error desconocido";
+                    errorDiv.classList.remove('hidden');
+                }
+
+            } catch(e) {
+                console.error(e);
+                errorDiv.innerText = "Error de red al consultar la base de datos de Google Sheets.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                btn.disabled = false;
+            }
+        });
+
+        // Lógica para Autoejecutar búsqueda si viene el parámetro ?qr= en la URL
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const qrParam = params.get('qr');
+            if (qrParam) {
+                const input = document.getElementById('qrInput');
+                input.value = qrParam;
+                // Pequeño delay para asegurar que todo esté listo
+                setTimeout(() => {
+                    document.getElementById('searchForm').dispatchEvent(new Event('submit'));
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
