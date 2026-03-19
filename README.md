@@ -1,6 +1,6 @@
 # Neuro-IA Trazabilidad
 
-Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sincronizacion contra Google Sheets, auditoria, backup y restauracion.
+Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sincronizacion contra Google Sheets, auditoria, backup, restauracion, usuarios locales y permisos por rol.
 
 ## Documentacion
 
@@ -36,11 +36,13 @@ La app permite:
 
 - gestionar geneticas, madres, clones, vegetativos, floracion y cosecha
 - generar IDs acumulativas y QR por nodo
+- dar de alta geneticas y fases productivas en modo local-first
 - mostrar fichas visuales de trazabilidad enlazada
 - trabajar en local aunque falle internet
 - sincronizar despues con Google Sheets
 - descargar y servir assets locales
 - auditar lecturas, cambios y sincronizaciones
+- registrar actor y rol en eventos nuevos de auditoria
 - exportar e importar backups completos del espejo local
 
 ## Arranque rapido

@@ -204,7 +204,7 @@ Implementa endpoints para exponer el estado del espejo y la cola.
 Implementa la generacion automatica de IDs segun el SOP.
 
 Reglas:
-- Madre: [GENETICA]-PM-[NUM]-[YY]
+- Madre: [PREFIJO_3L]-PM-[NUM]-[YY]
 - Clon: [ID_MADRE]-CL-[NUM]
 - Vegetativo: [ID_CLON]-V
 - Floracion: [ID_VEGETATIVO]F
@@ -231,6 +231,7 @@ Quiero perfeccionar el flujo QR.
 Requisitos:
 - cada nodo debe poder imprimirse como etiqueta QR
 - el QR debe abrir la app y mostrar la ficha visual del nodo
+- al abrir desde QR en movil, la ficha debe entrar en modo standalone sin sidebar, cabecera global ni controles de edicion
 - no debe abrir Google Sheets como flujo principal
 - el visor debe mostrar:
   - imagen
@@ -478,6 +479,7 @@ Requisitos funcionales obligatorios:
 - la app genera etiquetas QR
 - el QR abre una ficha visual de la app, no la hoja cruda
 - la app permite altas y ediciones local-first
+- la app permite alta local-first de geneticas base
 - la app mantiene cola de sincronizacion hacia Google Sheets
 - la app detecta conflictos y permite resolverlos manualmente
 - la app descarga assets remotos en local
@@ -553,7 +555,7 @@ Sheet_Cosecha:
 - Notas
 
 Reglas de IDs:
-- Madre: [GENETICA]-PM-[NUM]-[YY]
+- Madre: [PREFIJO_3L]-PM-[NUM]-[YY]
 - Clon: [ID_MADRE]-CL-[NUM]
 - Vegetativo: [ID_CLON]-V
 - Floracion: [ID_VEGETATIVO]F
@@ -666,6 +668,8 @@ Auditoria requerida para eventos como:
 - conflict_resolve_local
 - conflict_resolve_remote
 - backup_restored
+
+Quiero tambien una capa simple de usuarios locales con roles operativos (`Operario`, `Calidad`, `Dirección Cultivo`, `Técnico Sistema`) y que la auditoria muestre actor y rol en eventos nuevos.
 
 Documentacion final requerida:
 - README.md

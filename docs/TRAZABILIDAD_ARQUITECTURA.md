@@ -20,6 +20,7 @@ El sistema debe gestionar la trazabilidad completa del cultivo desde la genetica
 
 La aplicacion debe:
 
+- registrar nuevas geneticas base
 - registrar nuevas entidades por fase biologica
 - generar identificadores unicos y acumulativos
 - generar etiquetas QR
@@ -55,6 +56,7 @@ El sistema debe comportarse como una base enlazada tipo `coda.io`:
 
 La app debe permitir crear:
 
+- geneticas
 - madres
 - clones
 - vegetativos
@@ -63,6 +65,7 @@ La app debe permitir crear:
 
 Reglas:
 
+- una genetica puede crearse directamente en modo local-first
 - una madre solo puede crearse desde una genetica valida
 - un clon solo puede crearse desde una madre valida
 - un vegetativo solo puede crearse desde un clon valido
@@ -80,6 +83,8 @@ Desde cualquier ID, el visor debe devolver:
 - origen inmediato
 - ruta completa hasta genetica
 - navegacion entre nodos ascendentes
+
+En acceso desde QR movil, el visor debe entrar en modo standalone y ocultar navegacion general, cabecera global, buscador manual, historial del nodo y controles de edicion local.
 
 ### 4.3 Etiquetado QR
 
@@ -115,6 +120,7 @@ Debe existir historial de:
 - conflictos
 - resoluciones manuales
 - restauraciones de backup
+- actor y rol para eventos generados desde UI
 
 ### 4.6 Backup
 
@@ -232,11 +238,13 @@ Las IDs son acumulativas y reflejan el linaje.
 
 Formato:
 
-`[GENETICA]-PM-[NUM]-[YY]`
+`[PREFIJO_3L]-PM-[NUM]-[YY]`
 
 Ejemplo:
 
-`CBG-PM-1-26`
+`PAC-PM-1-26`
+
+Donde `PREFIJO_3L` son las 3 primeras letras de la genetica en mayusculas.
 
 ### 8.2 Clon
 
@@ -473,9 +481,10 @@ El modulo `Etiquetado` debe:
 Al leer el QR:
 
 1. se abre la app con `?search=<ID>`
-2. el visor consulta `GET /api/search/:id`
-3. se muestra ficha visual completa
-4. se registra auditoria `node_view`
+2. el visor entra en modo standalone para movil
+3. el visor consulta `GET /api/search/:id`
+4. se muestra ficha visual completa
+5. se registra auditoria `node_view`
 
 ## 18. Vistas del frontend
 
@@ -637,7 +646,34 @@ Debe permitir:
 - los backups deben poder exportarse como JSON portable
 - la restauracion debe reemplazar el espejo local de forma consistente
 
-## 23. Estructura de carpetas minima
+## 23. Roles y permisos
+
+La aplicacion debe soportar al menos estos roles operativos:
+
+- `Operario`
+- `Calidad`
+- `Dirección Cultivo`
+- `Técnico Sistema`
+
+Permisos base recomendados:
+
+- `Operario`
+  - acceso a dashboard, labores, pasaporte, visor QR, etiquetado, geneticas y auditoria basica
+  - sin acceso a acciones de sync/backup/conflictos
+- `Calidad`
+  - acceso a dashboard, labores, visor QR, geneticas y auditoria
+  - sin edicion local ni acciones tecnicas de sincronizacion
+- `Dirección Cultivo`
+  - acceso amplio a vistas operativas, auditoria, sync y resolucion de conflictos
+- `Técnico Sistema`
+  - acceso total operativo y tecnico
+  - puede sincronizar, restaurar backups, resolver conflictos y editar nodos local-first
+
+Las labores tambien pueden mostrar rol recomendado por bloque funcional.
+
+La autenticacion actual puede ser local y simple, con seleccion de usuario persistida en navegador, siempre que el sistema refleje el rol activo en permisos y auditoria.
+
+## 24. Estructura de carpetas minima
 
 ```text
 src/
@@ -657,29 +693,29 @@ package.json
 vite.config.js
 ```
 
-## 24. Configuracion y arranque desde cero
+## 25. Configuracion y arranque desde cero
 
-### 24.1 Requisitos previos
+### 25.1 Requisitos previos
 
 - Node.js 18+
 - proyecto Google Cloud con API Sheets habilitada
 - cuenta de servicio con acceso a la hoja
 - fichero `credenciales.json`
 
-### 24.2 Instalacion
+### 25.2 Instalacion
 
 ```bash
 npm install
 ```
 
-### 24.3 Desarrollo
+### 25.3 Desarrollo
 
 ```bash
 npm run dev
 npm run server
 ```
 
-### 24.4 Produccion local
+### 25.4 Produccion local
 
 ```bash
 npm run build
@@ -688,7 +724,7 @@ node server/server.js
 
 La app sirve frontend compilado desde `dist` y backend desde el mismo proceso.
 
-## 25. Requisitos de reproducibilidad exacta
+## 26. Requisitos de reproducibilidad exacta
 
 Para resolver el proyecto desde cero deben respetarse estos puntos:
 
@@ -704,10 +740,11 @@ Para resolver el proyecto desde cero deben respetarse estos puntos:
 10. soportar backup, restore e historial
 11. incluir auditoria global y por nodo
 
-## 26. Estado actual implementado
+## 27. Estado actual implementado
 
 Actualmente ya existe una implementacion funcional de:
 
+- alta local-first de geneticas
 - espejo local persistente
 - descarga de assets locales
 - indice relacional por nodo
@@ -719,12 +756,14 @@ Actualmente ya existe una implementacion funcional de:
 - QR visual con visor
 - historial por nodo
 - auditoria global
+- usuarios locales con rol activo en interfaz
+- actor y rol visibles en eventos nuevos de auditoria
 - export/import de backup
 
-## 27. Trabajo futuro recomendado
+## 28. Trabajo futuro recomendado
 
 - filtros por fecha en auditoria
-- permisos y roles
+- autenticacion local persistente con catalogo gestionable de usuarios
 - pantalla de diffs mas rica
 - importacion incremental de backup
 - pruebas automaticas de integracion

@@ -42,6 +42,132 @@ const getSyncBadgeClass = (status) => {
   return "bg-emerald-50 text-emerald-700";
 };
 
+const auditActionLabels = {
+  node_view: "Lectura de nodo",
+  local_append: "Alta local",
+  local_update: "Edición local",
+  remote_append_synced: "Alta sincronizada con Google Sheets",
+  remote_update_synced: "Edición sincronizada con Google Sheets",
+  sync_error: "Error de sincronización",
+  sync_conflict: "Conflicto de sincronización",
+  queue_retry: "Reintento de cola",
+  queue_discarded: "Operación descartada",
+  conflict_resolve_local: "Conflicto resuelto manteniendo local",
+  conflict_resolve_remote: "Conflicto resuelto manteniendo remoto",
+  backup_restored: "Backup restaurado",
+};
+
+const getAuditActionLabel = (action) => auditActionLabels[action] || action;
+
+const roleDefinitions = {
+  operario: {
+    label: "Operario",
+    description: "Altas operativas y consulta diaria",
+  },
+  qa: {
+    label: "Calidad",
+    description: "Verificación, auditoría y trazabilidad",
+  },
+  cultivo: {
+    label: "Dirección Cultivo",
+    description: "Supervisión operativa y decisiones de cultivo",
+  },
+  tecnico: {
+    label: "Técnico Sistema",
+    description: "Sync, backups, conflictos y mantenimiento",
+  },
+};
+
+const getRoleLabel = (role) => roleDefinitions[role]?.label || role || "Sistema";
+
+const defaultUsers = [
+  { id: "op1", name: "Operario Sala", role: "operario" },
+  { id: "qa1", name: "Responsable QA", role: "qa" },
+  { id: "cult1", name: "Dirección Cultivo", role: "cultivo" },
+  { id: "tec1", name: "Técnico Sistema", role: "tecnico" },
+];
+
+const rolePermissions = {
+  operario: [
+    "dashboard",
+    "labores",
+    "admin",
+    "search",
+    "qr",
+    "genetics",
+    "audit",
+  ],
+  qa: ["dashboard", "labores", "search", "audit", "genetics"],
+  cultivo: [
+    "dashboard",
+    "labores",
+    "admin",
+    "search",
+    "qr",
+    "audit",
+    "genetics",
+  ],
+  tecnico: [
+    "dashboard",
+    "labores",
+    "admin",
+    "search",
+    "qr",
+    "audit",
+    "genetics",
+  ],
+};
+
+const canAccessPage = (role, pageId) =>
+  (rolePermissions[role] || []).includes(pageId);
+
+const canSyncSystem = (role) => ["tecnico", "cultivo"].includes(role);
+const canEditNode = (role) => ["tecnico", "cultivo"].includes(role);
+
+function LoginView({ onLogin }) {
+  const [selectedUserId, setSelectedUserId] = useState(defaultUsers[0].id);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-100">
+      <div className="glass-card p-10 w-full max-w-md space-y-6">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-200">
+            <Leaf size={28} className="text-emerald-600" />
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            Neuro-IA Trazabilidad
+          </h1>
+          <p className="text-sm font-semibold text-slate-600">
+            Selecciona usuario local para entrar en la consola operativa.
+          </p>
+        </div>
+
+        <div>
+          <label className="label-text">Usuario</label>
+          <select
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+            className="input-light"
+          >
+            {defaultUsers.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.name} ({roleDefinitions[user.role]?.label || user.role})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          onClick={() => onLogin(defaultUsers.find((u) => u.id === selectedUserId))}
+          className="btn-glow w-full"
+        >
+          Entrar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── METRIC CARD ─────────────────────────────────────────
 
 function MetricCard({ title, value, icon: Icon, accent, delay = 0 }) {
@@ -237,6 +363,7 @@ function SyncPanel({
   onRestoreBackup,
   syncing,
   restoring,
+  currentRole,
 }) {
   const queue = mirrorStatus?.queue || [];
   const pending = queue.filter((item) =>
@@ -261,49 +388,53 @@ function SyncPanel({
             Escritura local primero, sincronizacion posterior con Google Drive.
           </p>
         </div>
-        <button
-          onClick={onSync}
-          disabled={syncing}
-          className="btn-glow py-3 px-5 text-sm"
-        >
-          {syncing ? (
-            <>
-              <RefreshCw size={16} className="animate-spin" /> Sync...
-            </>
-          ) : (
-            <>
-              <RefreshCw size={16} /> Sincronizar
-            </>
-          )}
-        </button>
+        {canSyncSystem(currentRole) && (
+          <button
+            onClick={onSync}
+            disabled={syncing}
+            className="btn-glow py-3 px-5 text-sm"
+          >
+            {syncing ? (
+              <>
+                <RefreshCw size={16} className="animate-spin" /> Sync...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={16} /> Sincronizar
+              </>
+            )}
+          </button>
+        )}
       </div>
 
-      <div className="flex items-center gap-3 mb-6">
-        <a
-          href={backupUrl}
-          className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-black uppercase tracking-widest"
-        >
-          Exportar Backup
-        </a>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/json"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onRestoreBackup(file);
-            e.target.value = "";
-          }}
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={restoring}
-          className="px-4 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-black uppercase tracking-widest disabled:opacity-50"
-        >
-          {restoring ? "Restaurando..." : "Importar Backup"}
-        </button>
-      </div>
+      {canSyncSystem(currentRole) && (
+        <div className="flex items-center gap-3 mb-6">
+          <a
+            href={backupUrl}
+            className="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-black uppercase tracking-widest"
+          >
+            Exportar Backup
+          </a>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onRestoreBackup(file);
+              e.target.value = "";
+            }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={restoring}
+            className="px-4 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-black uppercase tracking-widest disabled:opacity-50"
+          >
+            {restoring ? "Restaurando..." : "Importar Backup"}
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -374,36 +505,38 @@ function SyncPanel({
                   Conflicto: {item.conflict.reason}
                 </p>
               )}
-              <div className="flex items-center gap-2 mt-3">
-                <button
-                  onClick={() => onRetry(item.id)}
-                  className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest"
-                >
-                  Reintentar
-                </button>
-                <button
-                  onClick={() => onDiscard(item.id)}
-                  className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-black uppercase tracking-widest"
-                >
-                  Descartar
-                </button>
-                {item.status === "conflict" && (
-                  <>
-                    <button
-                      onClick={() => onResolveLocal(item.id)}
-                      className="px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-black uppercase tracking-widest"
-                    >
-                      Mantener local
-                    </button>
-                    <button
-                      onClick={() => onResolveRemote(item.id)}
-                      className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest"
-                    >
-                      Mantener remoto
-                    </button>
-                  </>
-                )}
-              </div>
+              {canSyncSystem(currentRole) && (
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => onRetry(item.id)}
+                    className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest"
+                  >
+                    Reintentar
+                  </button>
+                  <button
+                    onClick={() => onDiscard(item.id)}
+                    className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-black uppercase tracking-widest"
+                  >
+                    Descartar
+                  </button>
+                  {item.status === "conflict" && (
+                    <>
+                      <button
+                        onClick={() => onResolveLocal(item.id)}
+                        className="px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-black uppercase tracking-widest"
+                      >
+                        Mantener local
+                      </button>
+                      <button
+                        onClick={() => onResolveRemote(item.id)}
+                        className="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest"
+                      >
+                        Mantener remoto
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ))
         )}
@@ -469,6 +602,7 @@ function Dashboard({
   onRestoreBackup,
   syncing,
   restoring,
+  currentRole,
 }) {
   // Calculamos los totales reales basados en los datos de Google Sheets
   const totalMadres = options.madres?.length || 0;
@@ -523,6 +657,7 @@ function Dashboard({
         onRestoreBackup={onRestoreBackup}
         syncing={syncing}
         restoring={restoring}
+        currentRole={currentRole}
       />
     </div>
   );
@@ -531,7 +666,7 @@ function Dashboard({
 // ─── ADMIN PANEL ─────────────────────────────────────────
 
 function AdminPanel({ options, onRefresh }) {
-  const [tab, setTab] = useState("madre");
+  const [tab, setTab] = useState("genetica");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -544,6 +679,13 @@ function AdminPanel({ options, onRefresh }) {
     madre_id: "",
     origen_id: "",
     peso_humedo: "",
+    linaje: "",
+    documentos_url: "",
+    quimiotipo: "",
+    cannabinoides: "",
+    terpenos: "",
+    imagen_url: "",
+    notas: "",
   };
   const [form, setForm] = useState(initialForm);
 
@@ -559,13 +701,16 @@ function AdminPanel({ options, onRefresh }) {
 
   const getMotherId = (geneticaId, fecha) => {
     const yy = (fecha || new Date().toISOString()).slice(2, 4);
-    const prefix = `${geneticaId}-PM-`;
+    const motherPrefix = String(geneticaId || "")
+      .slice(0, 3)
+      .toUpperCase();
+    const prefix = `${motherPrefix}-PM-`;
     const seq =
       (options.madres || [])
         .filter((m) => m.id.startsWith(prefix) && m.id.endsWith(`-${yy}`))
         .map((m) => Number(m.id.match(/-PM-(\d+)-\d{2}$/)?.[1] || 0))
         .reduce((max, n) => Math.max(max, n), 0) + 1;
-    return `${geneticaId}-PM-${seq}-${yy}`;
+    return `${motherPrefix}-PM-${seq}-${yy}`;
   };
 
   const getCloneId = (madreId) => {
@@ -579,6 +724,7 @@ function AdminPanel({ options, onRefresh }) {
   };
 
   const tabs = [
+    { id: "genetica", label: "GENÉTICA", icon: Dna },
     { id: "madre", label: "MADRE", icon: Leaf },
     { id: "clon", label: "CLON", icon: Sprout },
     { id: "lote", label: "VEGETAR", icon: Package },
@@ -588,17 +734,33 @@ function AdminPanel({ options, onRefresh }) {
 
   // Resetear formulario al cambiar de pestaña
   useEffect(() => {
-    setForm({ ...initialForm, fecha: form.fecha, ubicacion: form.ubicacion });
+    setForm({
+      ...initialForm,
+      fecha: form.fecha,
+      ubicacion:
+        tab === "madre"
+          ? "Sala de Madres"
+          : tab === "lote"
+            ? "Sala de Vegetativos"
+            : form.ubicacion,
+    });
   }, [tab]);
+
+  useEffect(() => {
+    if (tab === "madre" && form.ubicacion !== "Sala de Madres") {
+      setForm((current) => ({ ...current, ubicacion: "Sala de Madres" }));
+    }
+    if (tab === "lote" && form.ubicacion !== "Sala de Vegetativos") {
+      setForm((current) => ({ ...current, ubicacion: "Sala de Vegetativos" }));
+    }
+  }, [tab, form.ubicacion]);
 
   // Autogenerar ID de Trazabilidad
   useEffect(() => {
     let newId = "";
-    const yy = form.fecha
-      ? form.fecha.substring(2, 4)
-      : new Date().getFullYear().toString().substring(2, 4);
-
-    if (tab === "madre" && form.variedad) {
+    if (tab === "genetica" && form.variedad) {
+      newId = String(form.variedad).slice(0, 3).toUpperCase();
+    } else if (tab === "madre" && form.variedad) {
       newId = getMotherId(form.variedad, form.fecha);
     } else if (tab === "clon" && form.madre_id) {
       newId = getCloneId(form.madre_id);
@@ -704,6 +866,109 @@ function AdminPanel({ options, onRefresh }) {
             className="grid grid-cols-1 md:grid-cols-2 gap-8"
           >
             {/* Genética - solo para Madre */}
+            {tab === "genetica" && (
+              <>
+                <div>
+                  <label className="label-text">Variedad</label>
+                  <input
+                    type="text"
+                    value={form.variedad}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        variedad: e.target.value.toUpperCase(),
+                      })
+                    }
+                    required
+                    placeholder="PACHAMAMA"
+                    className="input-light"
+                  />
+                </div>
+                <div>
+                  <label className="label-text">Linaje</label>
+                  <input
+                    type="text"
+                    value={form.linaje}
+                    onChange={(e) =>
+                      setForm({ ...form, linaje: e.target.value })
+                    }
+                    placeholder="Cruce o procedencia"
+                    className="input-light"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label-text">Imagen URL</label>
+                  <input
+                    type="text"
+                    value={form.imagen_url}
+                    onChange={(e) =>
+                      setForm({ ...form, imagen_url: e.target.value })
+                    }
+                    placeholder="https://..."
+                    className="input-light"
+                  />
+                </div>
+                <div>
+                  <label className="label-text">Documentos URL</label>
+                  <input
+                    type="text"
+                    value={form.documentos_url}
+                    onChange={(e) =>
+                      setForm({ ...form, documentos_url: e.target.value })
+                    }
+                    placeholder="https://..."
+                    className="input-light"
+                  />
+                </div>
+                <div>
+                  <label className="label-text">Quimiotipo</label>
+                  <input
+                    type="text"
+                    value={form.quimiotipo}
+                    onChange={(e) =>
+                      setForm({ ...form, quimiotipo: e.target.value })
+                    }
+                    className="input-light"
+                  />
+                </div>
+                <div>
+                  <label className="label-text">Cannabinoides URL</label>
+                  <input
+                    type="text"
+                    value={form.cannabinoides}
+                    onChange={(e) =>
+                      setForm({ ...form, cannabinoides: e.target.value })
+                    }
+                    placeholder="https://..."
+                    className="input-light"
+                  />
+                </div>
+                <div>
+                  <label className="label-text">Terpenos URL</label>
+                  <input
+                    type="text"
+                    value={form.terpenos}
+                    onChange={(e) =>
+                      setForm({ ...form, terpenos: e.target.value })
+                    }
+                    placeholder="https://..."
+                    className="input-light"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="label-text">Notas</label>
+                  <textarea
+                    value={form.notas}
+                    onChange={(e) =>
+                      setForm({ ...form, notas: e.target.value })
+                    }
+                    rows={4}
+                    className="input-light resize-none"
+                  />
+                </div>
+              </>
+            )}
+
             {tab === "madre" && (
               <div>
                 <label className="label-text">Genética / Variedad</label>
@@ -867,7 +1132,7 @@ function AdminPanel({ options, onRefresh }) {
               </div>
             )}
 
-            {tab !== "clon" && (
+            {tab !== "clon" && tab !== "genetica" && (
               <div>
                 <label className="label-text">Ubicación / Sala</label>
                 <input
@@ -883,16 +1148,18 @@ function AdminPanel({ options, onRefresh }) {
               </div>
             )}
 
-            <div>
-              <label className="label-text">Fecha</label>
-              <input
-                type="date"
-                value={form.fecha}
-                onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-                required
-                className="input-light"
-              />
-            </div>
+            {tab !== "genetica" && (
+              <div>
+                <label className="label-text">Fecha</label>
+                <input
+                  type="date"
+                  value={form.fecha}
+                  onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                  required
+                  className="input-light"
+                />
+              </div>
+            )}
 
             <div className="flex items-end md:col-span-2">
               <button
@@ -921,7 +1188,7 @@ function AdminPanel({ options, onRefresh }) {
 
 // ─── SEARCH VIEW ─────────────────────────────────────────
 
-function SearchView({ defaultQuery = "" }) {
+function SearchView({ defaultQuery = "", currentRole = "operario" }) {
   const [query, setQuery] = useState(defaultQuery);
   const [result, setResult] = useState(null);
   const [searching, setSearching] = useState(false);
@@ -930,6 +1197,19 @@ function SearchView({ defaultQuery = "" }) {
   const [saveFeedback, setSaveFeedback] = useState(null);
   const [history, setHistory] = useState([]);
   const immediateOrigin = result?.linaje?.[0] || null;
+  const finalGeneticsNode =
+    result?.node?.type === "genetica"
+      ? {
+          id: result.node.id,
+          type: result.type,
+          image:
+            result.data?.["Imagen_URL"] ||
+            result.data?.["Imagen"] ||
+            result.data?.["Imagen_Etiqueta"] ||
+            "",
+          data: result.data,
+        }
+      : result?.linaje?.[result.linaje.length - 1] || null;
   const traceRoute = result
     ? [
         {
@@ -1060,46 +1340,58 @@ function SearchView({ defaultQuery = "" }) {
   };
 
   return (
-    <div className="max-w-3xl mx-auto text-center space-y-10">
+    <div
+      className={cn(
+        "max-w-3xl mx-auto text-center space-y-10",
+        defaultQuery && "max-w-4xl",
+      )}
+    >
       <motion.div {...fadeUp} className="space-y-4">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-emerald-50 border border-emerald-200 mb-4">
-          <Search size={36} className="text-emerald-600" />
-        </div>
-        <h2 className="text-4xl font-black text-slate-900 tracking-tight">
-          Visor de Pasaporte
-        </h2>
-        <p className="text-slate-600 font-semibold">
-          Escanea o introduce un código QR para ver su trazabilidad completa.
-        </p>
+        {!defaultQuery && (
+          <>
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-emerald-50 border border-emerald-200 mb-4">
+              <Search size={36} className="text-emerald-600" />
+            </div>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight">
+              Visor de Pasaporte
+            </h2>
+            <p className="text-slate-600 font-semibold">
+              Escanea o introduce un código QR para ver su trazabilidad
+              completa.
+            </p>
+          </>
+        )}
       </motion.div>
 
-      <motion.div
-        {...fadeUp}
-        transition={{ delay: 0.2 }}
-        className="glass-card p-2 flex items-center gap-2"
-      >
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && doSearch()}
-          placeholder="Introduce el ID del lote..."
-          className="flex-1 bg-transparent border-none outline-none px-6 py-4 text-slate-900 font-bold placeholder-slate-400 text-lg"
-        />
-        <button
-          onClick={doSearch}
-          disabled={searching}
-          className="btn-glow shrink-0"
+      {!defaultQuery && (
+        <motion.div
+          {...fadeUp}
+          transition={{ delay: 0.2 }}
+          className="glass-card p-2 flex items-center gap-2"
         >
-          {searching ? (
-            <RefreshCw size={20} className="animate-spin" />
-          ) : (
-            <>
-              <QrCode size={20} /> BUSCAR
-            </>
-          )}
-        </button>
-      </motion.div>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && doSearch()}
+            placeholder="Introduce el ID del lote..."
+            className="flex-1 bg-transparent border-none outline-none px-6 py-4 text-slate-900 font-bold placeholder-slate-400 text-lg"
+          />
+          <button
+            onClick={doSearch}
+            disabled={searching}
+            className="btn-glow shrink-0"
+          >
+            {searching ? (
+              <RefreshCw size={20} className="animate-spin" />
+            ) : (
+              <>
+                <QrCode size={20} /> BUSCAR
+              </>
+            )}
+          </button>
+        </motion.div>
+      )}
 
       <AnimatePresence>
         {result && (
@@ -1228,7 +1520,7 @@ function SearchView({ defaultQuery = "" }) {
                   </div>
                 )}
 
-                {result.node && (
+                {result.node && !defaultQuery && (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
                       Edicion Local
@@ -1254,84 +1546,89 @@ function SearchView({ defaultQuery = "" }) {
                   </div>
                 )}
 
-                {result.node && editableFields.length > 0 && (
-                  <div className="rounded-3xl border border-slate-200 bg-white p-6 space-y-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                          Edicion Local-First
-                        </p>
-                        <p className="text-sm font-bold text-slate-800">
-                          Campos seguros editables sobre la copia local.
-                        </p>
-                      </div>
-                      <button
-                        onClick={saveEdit}
-                        disabled={
-                          savingEdit || result.node.syncStatus !== "synced"
-                        }
-                        className="btn-glow py-3 px-5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {savingEdit ? (
-                          <>
-                            <RefreshCw size={16} className="animate-spin" />{" "}
-                            Guardando
-                          </>
-                        ) : (
-                          <>
-                            <FileCheck size={16} /> Guardar cambios
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {editableFields.map((field) => (
-                        <div
-                          key={field}
-                          className={field === "Notas" ? "md:col-span-2" : ""}
-                        >
-                          <label className="label-text">{field}</label>
-                          {field === "Notas" ? (
-                            <textarea
-                              value={editForm[field] || ""}
-                              onChange={(e) =>
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  [field]: e.target.value,
-                                }))
-                              }
-                              rows={4}
-                              className="input-light resize-none"
-                              disabled={result.node.syncStatus !== "synced"}
-                            />
-                          ) : (
-                            <input
-                              type={
-                                field.includes("Fecha")
-                                  ? "date"
-                                  : field.includes("Peso") ||
-                                      field === "Cantidad"
-                                    ? "number"
-                                    : "text"
-                              }
-                              step={field.includes("Peso") ? "0.01" : "1"}
-                              value={editForm[field] || ""}
-                              onChange={(e) =>
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  [field]: e.target.value,
-                                }))
-                              }
-                              className="input-light"
-                              disabled={result.node.syncStatus !== "synced"}
-                            />
-                          )}
+                {result.node &&
+                  editableFields.length > 0 &&
+                  !defaultQuery &&
+                  canEditNode(currentRole) && (
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 space-y-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                            Edicion Local-First
+                          </p>
+                          <p className="text-sm font-bold text-slate-800">
+                            Campos seguros editables sobre la copia local.
+                          </p>
                         </div>
-                      ))}
+                        <button
+                          onClick={saveEdit}
+                          disabled={
+                            savingEdit ||
+                            result.node.syncStatus !== "synced" ||
+                            !canEditNode(currentRole)
+                          }
+                          className="btn-glow py-3 px-5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {savingEdit ? (
+                            <>
+                              <RefreshCw size={16} className="animate-spin" />{" "}
+                              Guardando
+                            </>
+                          ) : (
+                            <>
+                              <FileCheck size={16} /> Guardar cambios
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {editableFields.map((field) => (
+                          <div
+                            key={field}
+                            className={field === "Notas" ? "md:col-span-2" : ""}
+                          >
+                            <label className="label-text">{field}</label>
+                            {field === "Notas" ? (
+                              <textarea
+                                value={editForm[field] || ""}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    [field]: e.target.value,
+                                  }))
+                                }
+                                rows={4}
+                                className="input-light resize-none"
+                                disabled={result.node.syncStatus !== "synced"}
+                              />
+                            ) : (
+                              <input
+                                type={
+                                  field.includes("Fecha")
+                                    ? "date"
+                                    : field.includes("Peso") ||
+                                        field === "Cantidad"
+                                      ? "number"
+                                      : "text"
+                                }
+                                step={field.includes("Peso") ? "0.01" : "1"}
+                                value={editForm[field] || ""}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    [field]: e.target.value,
+                                  }))
+                                }
+                                className="input-light"
+                                disabled={result.node.syncStatus !== "synced"}
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {result.node?.syncMeta?.conflict?.localData &&
                   result.node?.syncMeta?.conflict?.remoteData && (
@@ -1492,7 +1789,93 @@ function SearchView({ defaultQuery = "" }) {
                   </div>
                 )}
 
-                {history.length > 0 && (
+                {result.node?.type === "madre" && result.node?.parentId && (
+                  <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-2">
+                      Genética Vinculada
+                    </p>
+                    <button
+                      onClick={() => {
+                        setQuery(result.node.parentId);
+                        doSearch(result.node.parentId);
+                      }}
+                      className="w-full text-left rounded-2xl bg-white border border-emerald-100 p-4 hover:border-emerald-300 transition-colors"
+                    >
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">
+                        Genética Base
+                      </p>
+                      <p className="text-lg font-black text-slate-900">
+                        {result.node.parentId}
+                      </p>
+                      <p className="text-sm font-semibold text-emerald-700 mt-2">
+                        Ver ficha genética completa
+                      </p>
+                    </button>
+                  </div>
+                )}
+
+                {defaultQuery &&
+                  finalGeneticsNode &&
+                  finalGeneticsNode.type
+                    ?.toLowerCase()
+                    .includes("genética") && (
+                    <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 space-y-4">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">
+                          Genética Final
+                        </p>
+                        <p className="text-lg font-black text-slate-900">
+                          {finalGeneticsNode.id}
+                        </p>
+                      </div>
+
+                      {finalGeneticsNode.image && (
+                        <div className="w-full h-56 bg-slate-100 rounded-2xl overflow-hidden border border-emerald-100">
+                          <img
+                            src={finalGeneticsNode.image}
+                            alt={finalGeneticsNode.id}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {finalGeneticsNode.data?.Cannabinoides && (
+                          <a
+                            href={finalGeneticsNode.data.Cannabinoides}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-2xl bg-white border border-emerald-100 p-4 text-sm font-black text-emerald-700 hover:border-emerald-300"
+                          >
+                            Ver Cannabinoides
+                          </a>
+                        )}
+                        {finalGeneticsNode.data?.Terpenos && (
+                          <a
+                            href={finalGeneticsNode.data.Terpenos}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-2xl bg-white border border-emerald-100 p-4 text-sm font-black text-emerald-700 hover:border-emerald-300"
+                          >
+                            Ver Terpenos
+                          </a>
+                        )}
+                        {finalGeneticsNode.data?.Documentos_URL && (
+                          <a
+                            href={finalGeneticsNode.data.Documentos_URL}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-2xl bg-white border border-emerald-100 p-4 text-sm font-black text-emerald-700 hover:border-emerald-300"
+                          >
+                            Ver Documentos
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {history.length > 0 && !defaultQuery && (
                   <div className="rounded-3xl border border-slate-200 bg-white p-6">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
                       Historial del Nodo
@@ -1505,12 +1888,17 @@ function SearchView({ defaultQuery = "" }) {
                         >
                           <div className="flex items-center justify-between gap-4 mb-1">
                             <p className="text-sm font-black text-slate-900">
-                              {item.action}
+                              {getAuditActionLabel(item.action)}
                             </p>
                             <span className="text-xs font-semibold text-slate-500">
                               {new Date(item.timestamp).toLocaleString("es-ES")}
                             </span>
                           </div>
+                          {item.payload?.actor && (
+                            <p className="text-xs text-emerald-700 font-bold mb-2">
+                              Actor: {item.payload.actor.user} · Rol: {getRoleLabel(item.payload.actor.role)}
+                            </p>
+                          )}
                           {item.payload && (
                             <p className="text-xs text-slate-600 font-semibold break-words">
                               {Object.entries(item.payload)
@@ -2101,7 +2489,7 @@ function AuditView() {
             <option value="all">Todas</option>
             {actions.map((action) => (
               <option key={action} value={action}>
-                {action}
+                {getAuditActionLabel(action)}
               </option>
             ))}
           </select>
@@ -2133,12 +2521,17 @@ function AuditView() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
                   <div>
                     <p className="text-sm font-black text-slate-900">
-                      {item.action}
+                      {getAuditActionLabel(item.action)}
                     </p>
                     <p className="text-xs text-slate-500 font-semibold mt-1">
                       Nodo: {item.nodeId || "n/d"} · Hoja:{" "}
                       {item.sheetName || "n/d"}
                     </p>
+                    {item.payload?.actor && (
+                      <p className="text-xs text-emerald-700 font-bold mt-1">
+                        Actor: {item.payload.actor.user} · Rol: {getRoleLabel(item.payload.actor.role)}
+                      </p>
+                    )}
                   </div>
                   <span className="text-xs text-slate-500 font-semibold">
                     {new Date(item.timestamp).toLocaleString("es-ES")}
@@ -2164,6 +2557,248 @@ function AuditView() {
   );
 }
 
+function LaboresView({ currentRole = "operario" }) {
+  const today = new Date().toISOString().split("T")[0];
+  const [turno, setTurno] = useState("manana");
+  const [checked, setChecked] = useState({});
+  const bloques = [
+    {
+      title: "Genética y Madres",
+      icon: Dna,
+      accent: "bg-emerald-600",
+      roles: ["cultivo", "operario", "qa"],
+      labores: [
+        "Verificar identidad varietal, linaje y documentación técnica.",
+        "Revisar vigor, sanidad, estructura y estabilidad de madres.",
+        "Inspeccionar plagas, carencias, exceso de riego y daños mecánicos.",
+        "Registrar podas, despuntes, limpieza basal y reposición de etiquetas.",
+        "Comprobar limpieza de sala, herramientas y trazabilidad de cada madre.",
+      ],
+    },
+    {
+      title: "Clonado y Enraizado",
+      icon: Sprout,
+      accent: "bg-teal-600",
+      roles: ["operario", "cultivo"],
+      labores: [
+        "Seleccionar material vegetal sano y homogéneo para esquejado.",
+        "Preparar bandejas, tacos, hormona de enraizado y humedad ambiental.",
+        "Controlar temperatura, VPD, riego fino y porcentaje de prendimiento.",
+        "Retirar material fallido y registrar merma real del lote.",
+        "Confirmar que cada lote de clones mantiene su QR e identificación.",
+      ],
+    },
+    {
+      title: "Vegetativo",
+      icon: Package,
+      accent: "bg-lime-600",
+      roles: ["operario", "cultivo"],
+      labores: [
+        "Verificar trasplante, arraigo, crecimiento uniforme y densidad de plantas.",
+        "Ajustar riego, EC, pH, drenaje y frecuencia según desarrollo radicular.",
+        "Ejecutar tutorado, poda de formación, LST o limpieza si aplica.",
+        "Controlar clima: temperatura, humedad, ventilación y fotoperiodo.",
+        "Registrar incidencias de sala, movimientos de lote y cambios de estado.",
+      ],
+    },
+    {
+      title: "Floración",
+      icon: Sun,
+      accent: "bg-amber-500",
+      roles: ["operario", "cultivo", "qa"],
+      labores: [
+        "Confirmar paso correcto desde vegetativo y homogeneidad del lote.",
+        "Ajustar clima, nutrición y riego para fase reproductiva.",
+        "Controlar altura, estiramiento, tutores, malla y estructura floral.",
+        "Inspeccionar botrytis, oídio, plagas y contaminaciones cruzadas.",
+        "Registrar cambios fenológicos, mermas, retirada de plantas y observaciones.",
+      ],
+    },
+    {
+      title: "Cosecha y Postcosecha",
+      icon: Scissors,
+      accent: "bg-rose-600",
+      roles: ["operario", "cultivo", "qa"],
+      labores: [
+        "Validar lote correcto antes del corte y confirmar identidad por QR.",
+        "Registrar fecha de corte y peso húmedo inmediatamente.",
+        "Separar lotes, evitar mezclas y mantener etiquetado durante manipulación.",
+        "Anotar peso seco cuando proceda y cualquier desviación del proceso.",
+        "Asegurar limpieza de útiles, mesas, contenedores y sala de trabajo.",
+      ],
+    },
+    {
+      title: "Calidad, Sync y Sistema",
+      icon: FileCheck,
+      accent: "bg-sky-600",
+      roles: ["qa", "tecnico", "cultivo"],
+      labores: [
+        "Comprobar que nuevas altas quedan visibles en visor, etiquetado y auditoría.",
+        "Revisar cola pendiente, conflictos y último estado del espejo local.",
+        "Exportar backup antes de cambios críticos o fin de jornada si aplica.",
+        "Validar lectura móvil de QR en muestras representativas del cultivo.",
+        "Resolver conflictos antes de cerrar jornada operativa o traspasar turno.",
+      ],
+    },
+  ];
+
+  const storageKey = `labores:${today}:${turno}`;
+  const visibleBloques = bloques.filter((bloque) =>
+    bloque.roles.includes(currentRole),
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      setChecked(raw ? JSON.parse(raw) : {});
+    } catch {
+      setChecked({});
+    }
+  }, [storageKey]);
+
+  const toggleLabor = (id) => {
+    setChecked((current) => {
+      const next = { ...current, [id]: !current[id] };
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(storageKey, JSON.stringify(next));
+      }
+      return next;
+    });
+  };
+
+  const totalLabores = visibleBloques.reduce(
+    (acc, bloque) => acc + bloque.labores.length,
+    0,
+  );
+  const completedLabores = Object.values(checked).filter(Boolean).length;
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-8">
+      <div>
+        <h3 className="text-3xl font-black text-slate-900 tracking-tight">
+          Labores de Cultivo
+        </h3>
+        <p className="text-slate-600 font-semibold mt-2">
+          Checklist operativo de las labores principales y necesarias en todas
+          las fases del cultivo de cannabis.
+        </p>
+      </div>
+
+      <div className="glass-card p-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div>
+          <p className="label-text">Fecha operativa</p>
+          <div className="input-light bg-slate-50 text-slate-700 font-bold">
+            {new Date(today).toLocaleDateString("es-ES")}
+          </div>
+        </div>
+        <div>
+          <label className="label-text">Turno</label>
+          <select
+            value={turno}
+            onChange={(e) => setTurno(e.target.value)}
+            className="input-light"
+          >
+            <option value="manana">Manana</option>
+            <option value="tarde">Tarde</option>
+            <option value="noche">Noche</option>
+          </select>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">
+            Progreso diario
+          </p>
+          <p className="text-lg font-black text-slate-900">
+            {completedLabores}/{totalLabores}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {visibleBloques.map((bloque, index) => {
+          const Icon = bloque.icon;
+          const completedInBlock = bloque.labores.filter(
+            (_, laborIndex) => checked[`${bloque.title}:${laborIndex}`],
+          ).length;
+          return (
+            <motion.div
+              key={bloque.title}
+              {...fadeUp}
+              transition={{ delay: 0.05 * index }}
+              className="glass-card p-8"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <div
+                  className={cn(
+                    "w-12 h-12 rounded-2xl flex items-center justify-center text-white",
+                    bloque.accent,
+                  )}
+                >
+                  <Icon size={22} />
+                </div>
+                <h4 className="text-xl font-black text-slate-900">
+                  {bloque.title}
+                </h4>
+                <div className="ml-auto text-right">
+                  <span className="block text-xs font-black uppercase tracking-widest text-slate-500">
+                    {completedInBlock}/{bloque.labores.length}
+                  </span>
+                  <span className="block text-[10px] font-bold text-slate-400 mt-1">
+                    Roles:{" "}
+                    {bloque.roles
+                      .map((role) => roleDefinitions[role]?.label || role)
+                      .join(", ")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {bloque.labores.map((labor, laborIndex) => {
+                  const laborId = `${bloque.title}:${laborIndex}`;
+                  const isDone = Boolean(checked[laborId]);
+                  return (
+                    <div
+                      key={labor}
+                      className={cn(
+                        "rounded-2xl border px-4 py-3 flex items-start gap-3 transition-colors",
+                        isDone
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-slate-200 bg-slate-50",
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleLabor(laborId)}
+                        className={cn(
+                          "w-5 h-5 rounded-md border mt-0.5 shrink-0 transition-colors",
+                          isDone
+                            ? "bg-emerald-600 border-emerald-600"
+                            : "bg-white border-slate-300",
+                        )}
+                        aria-label={`Marcar labor ${labor}`}
+                      />
+                      <p
+                        className={cn(
+                          "text-sm font-semibold",
+                          isDone
+                            ? "text-emerald-800 line-through"
+                            : "text-slate-700",
+                        )}
+                      >
+                        {labor}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ────────────────────────────────────────────
 
 export default function App() {
@@ -2175,12 +2810,20 @@ export default function App() {
     vegetativos: [],
     floraciones: [],
   });
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : true,
+  );
   const [apiStatus, setApiStatus] = useState(null);
   const [mirrorStatus, setMirrorStatus] = useState(null);
   const [syncingMirror, setSyncingMirror] = useState(false);
   const [restoringBackup, setRestoringBackup] = useState(false);
   const [urlSearchTerm, setUrlSearchTerm] = useState(null);
+  const [qrStandaloneMode, setQrStandaloneMode] = useState(false);
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem("currentUser");
+    return raw ? JSON.parse(raw) : null;
+  });
 
   useEffect(() => {
     loadOptions();
@@ -2194,6 +2837,10 @@ export default function App() {
       if (searchId) {
         setUrlSearchTerm(searchId);
         setPage("search");
+        setQrStandaloneMode(true);
+        if (window.innerWidth < 1024) {
+          setSidebarOpen(false);
+        }
 
         // Limpiar la URL para que no interfiera en la navegación posterior
         window.history.replaceState(
@@ -2312,148 +2959,230 @@ export default function App() {
   const nav = [
     { id: "dashboard", label: "Ecosistema", icon: TrendingUp },
     { id: "genetics", label: "Genéticas", icon: Dna },
+    { id: "labores", label: "Labores", icon: Activity },
     { id: "admin", label: "Pasaporte", icon: FileCheck },
     { id: "search", label: "Visor QR", icon: Search },
     { id: "qr", label: "Etiquetado", icon: QrCode },
     { id: "audit", label: "Auditoría", icon: Activity },
   ];
+  const currentRole = qrStandaloneMode ? "qa" : currentUser?.role || null;
+  const visibleNav = nav.filter((item) => canAccessPage(currentRole || "operario", item.id));
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && currentUser) {
+      window.localStorage.setItem("currentUser", JSON.stringify(currentUser));
+    }
+    if (currentRole && !canAccessPage(currentRole, page)) {
+      setPage("dashboard");
+    }
+  }, [currentUser, currentRole, page]);
+
+  useEffect(() => {
+    if (currentUser) {
+      axios.defaults.headers.common["x-user-name"] = currentUser.name;
+      axios.defaults.headers.common["x-user-role"] = currentUser.role;
+    } else {
+      delete axios.defaults.headers.common["x-user-name"];
+      delete axios.defaults.headers.common["x-user-role"];
+    }
+  }, [currentUser]);
+
+  if (!qrStandaloneMode && !currentUser) {
+    return (
+      <LoginView
+        onLogin={(user) => {
+          setCurrentUser(user);
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("currentUser", JSON.stringify(user));
+          }
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* ═══ SIDEBAR ═══ */}
-      <aside
-        className={cn(
-          "h-full flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden shrink-0",
-          sidebarOpen ? "w-72 p-8" : "w-0 p-0",
-        )}
-        style={{ background: "#ffffff", borderRight: "1px solid #e2e8f0" }}
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-4 mb-14 shrink-0">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/20">
-            <Leaf size={22} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              NEURO-IA
-            </h1>
-            <p className="text-[11px] font-black text-emerald-600 uppercase tracking-[3px]">
-              Trazabilidad
-            </p>
-          </div>
-        </div>
+      {sidebarOpen && !qrStandaloneMode && (
+        <button
+          aria-label="Cerrar menú lateral"
+          className="fixed inset-0 z-40 bg-slate-900/20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-        {/* Nav Links */}
-        <nav className="flex-1 space-y-2">
-          {nav.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setPage(item.id)}
-              className={cn(
-                "w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group",
-                page === item.id
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/15"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-              )}
-            >
-              <item.icon
-                size={20}
+      {/* ═══ SIDEBAR ═══ */}
+      {!qrStandaloneMode && (
+        <aside
+          className={cn(
+            "fixed inset-y-0 left-0 z-50 h-full flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden shrink-0 lg:relative",
+            sidebarOpen
+              ? "w-72 p-8 translate-x-0"
+              : "w-0 p-0 -translate-x-full lg:translate-x-0",
+          )}
+          style={{ background: "#ffffff", borderRight: "1px solid #e2e8f0" }}
+        >
+          {/* Logo */}
+          <div className="flex items-center gap-4 mb-14 shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/20">
+              <Leaf size={22} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                NEURO-IA
+              </h1>
+              <p className="text-[11px] font-black text-emerald-600 uppercase tracking-[3px]">
+                Trazabilidad
+              </p>
+            </div>
+          </div>
+
+          {/* Nav Links */}
+          <nav className="flex-1 space-y-2">
+            {visibleNav.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setPage(item.id);
+                  if (
+                    typeof window !== "undefined" &&
+                    window.innerWidth < 1024
+                  ) {
+                    setSidebarOpen(false);
+                  }
+                }}
                 className={cn(
-                  "transition-all",
+                  "w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group",
                   page === item.id
-                    ? "text-white"
-                    : "text-slate-500 group-hover:text-emerald-600",
+                    ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/15"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+                )}
+              >
+                <item.icon
+                  size={20}
+                  className={cn(
+                    "transition-all",
+                    page === item.id
+                      ? "text-white"
+                      : "text-slate-500 group-hover:text-emerald-600",
+                  )}
+                />
+                <span className="text-xs font-black uppercase tracking-widest">
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </nav>
+
+          {/* Status */}
+          <div className="shrink-0 p-5 rounded-2xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center gap-3 mb-2">
+              <div
+                className={cn(
+                  "w-2.5 h-2.5 rounded-full",
+                  apiStatus?.status === "ok"
+                    ? "bg-emerald-500 animate-pulse"
+                    : "bg-red-500",
                 )}
               />
-              <span className="text-xs font-black uppercase tracking-widest">
-                {item.label}
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                {apiStatus?.status === "ok" ? "Conectado" : "Offline"}
               </span>
-            </button>
-          ))}
-        </nav>
-
-        {/* Status */}
-        <div className="shrink-0 p-5 rounded-2xl bg-slate-50 border border-slate-200">
-          <div className="flex items-center gap-3 mb-2">
-            <div
-              className={cn(
-                "w-2.5 h-2.5 rounded-full",
-                apiStatus?.status === "ok"
-                  ? "bg-emerald-500 animate-pulse"
-                  : "bg-red-500",
-              )}
-            />
-            <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
-              {apiStatus?.status === "ok" ? "Conectado" : "Offline"}
-            </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold">
+              <Database size={14} />
+              <span>
+                {apiStatus?.sheets_connected
+                  ? "Google Sheets activo"
+                  : "Sin conexión a Sheets"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold mt-2">
+              <RefreshCw size={14} />
+              <span>
+                Espejo: {apiStatus?.mirror?.source || "n/d"}
+                {apiStatus?.mirror?.nodes
+                  ? ` · ${apiStatus.mirror.nodes} nodos`
+                  : ""}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold mt-2">
+              <Zap size={14} />
+              <span>
+                Cola: {apiStatus?.mirror?.pending_ops ?? 0} pendientes
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold mt-2">
+              <AlertTriangle size={14} />
+              <span>Conflictos: {apiStatus?.mirror?.conflict_ops ?? 0}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold">
-            <Database size={14} />
-            <span>
-              {apiStatus?.sheets_connected
-                ? "Google Sheets activo"
-                : "Sin conexión a Sheets"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold mt-2">
-            <RefreshCw size={14} />
-            <span>
-              Espejo: {apiStatus?.mirror?.source || "n/d"}
-              {apiStatus?.mirror?.nodes
-                ? ` · ${apiStatus.mirror.nodes} nodos`
-                : ""}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold mt-2">
-            <Zap size={14} />
-            <span>Cola: {apiStatus?.mirror?.pending_ops ?? 0} pendientes</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600 font-semibold mt-2">
-            <AlertTriangle size={14} />
-            <span>Conflictos: {apiStatus?.mirror?.conflict_ops ?? 0}</span>
-          </div>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       {/* ═══ MAIN ═══ */}
       <main className="flex-1 overflow-y-auto">
         {/* Top Bar */}
-        <header
-          className="sticky top-0 z-40 px-8 py-5 flex items-center justify-between"
-          style={{
-            background: "rgba(255, 255, 255, 0.85)",
-            backdropFilter: "blur(20px)",
-            borderBottom: "1px solid #e2e8f0",
-          }}
-        >
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all"
-            >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-            <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                {nav.find((n) => n.id === page)?.label || "Dashboard"}
-              </h2>
-              <p className="text-sm text-slate-600 font-semibold">
-                Neuro-IA Trazabilidad Industrial
-              </p>
+        {!qrStandaloneMode && (
+          <header
+            className="sticky top-0 z-40 px-8 py-5 flex items-center justify-between"
+            style={{
+              background: "rgba(255, 255, 255, 0.85)",
+              backdropFilter: "blur(20px)",
+              borderBottom: "1px solid #e2e8f0",
+            }}
+          >
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all"
+              >
+                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+              <div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                  {nav.find((n) => n.id === page)?.label || "Dashboard"}
+                </h2>
+                <p className="text-sm text-slate-600 font-semibold">
+                  Neuro-IA Trazabilidad Industrial
+                </p>
+              </div>
             </div>
-          </div>
           <div className="flex items-center gap-5">
+            {!qrStandaloneMode && currentUser && (
+              <div className="hidden md:flex flex-col items-end">
+                <span className="text-sm font-bold text-slate-700">
+                  {currentUser.name}
+                </span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600">
+                  {roleDefinitions[currentUser.role]?.label || currentUser.role}
+                </span>
+              </div>
+            )}
             <span className="text-sm text-slate-600 font-bold hidden md:block">
               Javier Ferrández
             </span>
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center text-white text-sm font-black shadow-lg">
               JF
             </div>
+            {!qrStandaloneMode && currentUser && (
+              <button
+                onClick={() => {
+                  setCurrentUser(null);
+                  if (typeof window !== "undefined") {
+                    window.localStorage.removeItem("currentUser");
+                  }
+                }}
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest"
+              >
+                Salir
+              </button>
+            )}
           </div>
         </header>
+        )}
 
         {/* Page Content */}
-        <div className="p-8 md:p-12">
+        <div className={cn("p-8 md:p-12", qrStandaloneMode && "p-4 md:p-6")}>
           <AnimatePresence mode="wait">
             <motion.div
               key={page}
@@ -2473,16 +3202,21 @@ export default function App() {
                   onRestoreBackup={restoreBackupFile}
                   syncing={syncingMirror}
                   restoring={restoringBackup}
+                  currentRole={currentRole}
                 />
               )}
               {page === "genetics" && (
                 <GeneticsView genetics={options.geneticasFull} />
               )}
+              {page === "labores" && <LaboresView currentRole={currentRole} />}
               {page === "admin" && (
                 <AdminPanel options={options} onRefresh={loadOptions} />
               )}
               {page === "search" && (
-                <SearchView defaultQuery={urlSearchTerm || ""} />
+                <SearchView
+                  defaultQuery={urlSearchTerm || ""}
+                  currentRole={currentRole}
+                />
               )}
               {page === "qr" && (
                 <QRGenerator options={options} apiStatus={apiStatus} />

@@ -316,6 +316,13 @@ async function appendHistoryEvent(event) {
   await writeJson(LOCAL_HISTORY_FILE, history.slice(-2000));
 }
 
+function getActorFromReq(req) {
+  return {
+    user: req.headers["x-user-name"] || "Sistema",
+    role: req.headers["x-user-role"] || "system",
+  };
+}
+
 function createBackupPayload() {
   return {
     exportedAt: new Date().toISOString(),
@@ -931,9 +938,14 @@ function getTwoDigitYear(dateValue) {
   return date.getFullYear().toString().slice(-2);
 }
 
+function getMotherPrefix(geneticaId) {
+  return cleanCell(geneticaId).slice(0, 3).toUpperCase();
+}
+
 function getNextMotherId(index, geneticaId, fecha) {
   const yy = getTwoDigitYear(fecha);
-  const prefix = `${geneticaId}-PM-`;
+  const motherPrefix = getMotherPrefix(geneticaId);
+  const prefix = `${motherPrefix}-PM-`;
   const seq =
     index.byType.madre
       .filter(
@@ -941,7 +953,7 @@ function getNextMotherId(index, geneticaId, fecha) {
       )
       .map((node) => Number(node.id.match(/-PM-(\d+)-\d{2}$/)?.[1] || 0))
       .reduce((max, n) => Math.max(max, n), 0) + 1;
-  return `${geneticaId}-PM-${seq}-${yy}`;
+  return `${motherPrefix}-PM-${seq}-${yy}`;
 }
 
 function getNextCloneId(index, madreId) {
@@ -1187,6 +1199,7 @@ app.get("/api/options", async (req, res) => {
 
 // POST entity
 app.post("/api/entity", async (req, res) => {
+  const actor = getActorFromReq(req);
   const {
     type,
     qr_id,
@@ -1198,6 +1211,12 @@ app.post("/api/entity", async (req, res) => {
     origen_id,
     peso_humedo,
     notas,
+    linaje,
+    documentos_url,
+    quimiotipo,
+    cannabinoides,
+    terpenos,
+    imagen_url,
   } = req.body;
 
   await MirrorCache.syncAll();
@@ -1205,6 +1224,17 @@ app.post("/api/entity", async (req, res) => {
   let finalQrId = qr_id;
   let finalVariedad = variedad;
   const existingQueue = await loadQueue();
+
+  if (type === "genetica") {
+    finalQrId = cleanCell(qr_id || variedad).toUpperCase();
+    finalVariedad = cleanCell(variedad);
+    if (!finalQrId || !finalVariedad) {
+      return res.status(400).json({
+        status: "error",
+        message: "La genética requiere ID y variedad",
+      });
+    }
+  }
 
   if (type === "madre") {
     const geneticaNode =
@@ -1273,7 +1303,22 @@ app.post("/api/entity", async (req, res) => {
   }
 
   let sheetName, row;
-  if (type === "madre") {
+  if (type === "genetica") {
+    sheetName = "Sheet_Genetica";
+    row = [
+      finalQrId,
+      finalVariedad,
+      linaje || "",
+      notas || "",
+      imagen_url || "",
+      documentos_url || "",
+      quimiotipo || "",
+      cannabinoides || "",
+      "",
+      terpenos || "",
+      "",
+    ];
+  } else if (type === "madre") {
     sheetName = "Sheet_Madres";
     row = [
       finalQrId,
@@ -1340,6 +1385,12 @@ app.post("/api/entity", async (req, res) => {
         pending: syncResult.pending,
       },
     });
+    await appendHistoryEvent({
+      nodeId: finalQrId,
+      sheetName,
+      action: "entity_created_via_ui",
+      payload: { type, actor },
+    });
   } catch (error) {
     console.error("Error POST /api/entity:", error.message);
     res.status(500).json({ status: "error", message: error.message });
@@ -1349,6 +1400,7 @@ app.post("/api/entity", async (req, res) => {
 app.patch("/api/node/:id", async (req, res) => {
   const targetId = req.params.id;
   const patchData = req.body?.data || {};
+  const actor = getActorFromReq(req);
 
   await MirrorCache.syncAll();
   const node = MirrorCache.index.byId[targetId.toUpperCase()];
@@ -1394,6 +1446,13 @@ app.patch("/api/node/:id", async (req, res) => {
     const syncResult = await processSyncQueue();
     await refreshQueueState();
 
+    await appendHistoryEvent({
+      nodeId: node.id,
+      sheetName: node.sheetName,
+      action: "entity_updated_via_ui",
+      payload: { actor },
+    });
+
     return res.json({
       status: "success",
       message: `${node.id} actualizado en local`,
@@ -1411,6 +1470,7 @@ app.patch("/api/node/:id", async (req, res) => {
 
 // GET search
 app.get("/api/search/:qr", async (req, res) => {
+  const actor = getActorFromReq(req);
   if (!sheets && !Object.keys(MirrorCache.index.byId || {}).length)
     return res
       .status(503)
@@ -1426,7 +1486,7 @@ app.get("/api/search/:qr", async (req, res) => {
         nodeId: node.id,
         sheetName: node.sheetName,
         action: "node_view",
-        payload: { source: "search_api" },
+        payload: { source: "search_api", actor },
       });
       const linaje = buildTraceLineage(MirrorCache.index, node.id);
       return res.json({

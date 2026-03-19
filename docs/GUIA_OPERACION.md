@@ -15,14 +15,36 @@ El sistema opera en 6 fases:
 5. Floracion
 6. Cosecha
 
+## 2.1 Roles operativos
+
+La app distingue estos perfiles:
+
+- `Operario`: altas, etiquetado, visor QR y labores operativas
+- `Calidad`: visor QR, geneticas, labores y auditoria
+- `Dirección Cultivo`: supervision general, auditoria y acciones de coordinacion
+- `Técnico Sistema`: sincronizacion, backups, conflictos y mantenimiento
+
+El acceso actual se realiza mediante seleccion de usuario local al entrar en la app. El rol asociado al usuario modifica las vistas y acciones disponibles en la interfaz.
+
 ## 3. Alta de nuevas entidades
 
 Entrar en la seccion `Pasaporte`.
 
+### 3.0 Alta de genetica base
+
+- abrir la pestaña `GENÉTICA`
+- introducir `Variedad`
+- completar, si aplica, `Linaje`, `Imagen URL`, `Documentos URL`, `Quimiotipo`, `Cannabinoides URL`, `Terpenos URL` y `Notas`
+- el sistema genera una ID base autoderivada de la variedad
+- guardar
+- la genetica queda disponible inmediatamente en `Genéticas`, `Etiquetado`, `Visor QR` y altas de madre
+
 ### 3.1 Alta de madre
 
 - seleccionar genetica
-- indicar ubicacion y fecha
+- la ID se genera con las 3 primeras letras de la genetica en mayusculas
+- la ubicacion se rellena por defecto como `Sala de Madres`
+- indicar fecha
 - guardar
 - el sistema genera la ID automaticamente
 
@@ -35,7 +57,8 @@ Entrar en la seccion `Pasaporte`.
 ### 3.3 Alta de vegetativo
 
 - seleccionar clon origen
-- indicar ubicacion, fecha y cantidad
+- la ubicacion se rellena por defecto como `Sala de Vegetativos`
+- indicar fecha y cantidad
 - guardar
 
 ### 3.4 Alta de floracion
@@ -75,6 +98,8 @@ La ficha visual muestra:
 - ruta completa
 - historial del nodo
 
+Si se entra desde QR en movil, la ficha se abre en modo standalone y oculta navegacion general, buscador manual, historial del nodo y controles de edicion.
+
 ## 6. Edicion local
 
 Si un nodo esta `Sincronizado`, se pueden editar campos seguros.
@@ -103,6 +128,8 @@ Permite:
 - exportar backup
 - importar backup
 
+Estas acciones deben estar reservadas a `Dirección Cultivo` y `Técnico Sistema`.
+
 ## 8. Resolucion de conflictos
 
 Si aparece un conflicto, se puede:
@@ -121,5 +148,9 @@ La seccion `Auditoría` muestra:
 - errores
 - conflictos
 - restauraciones
+
+Los eventos nuevos de auditoria muestran tambien actor y rol del usuario cuando la accion se lanza desde la interfaz.
+
+La auditoria global completa debe estar orientada principalmente a `Calidad`, `Dirección Cultivo` y `Técnico Sistema`, aunque `Operario` puede visualizar una version operativa en la interfaz actual.
 
 Permite filtrar y exportar historial.

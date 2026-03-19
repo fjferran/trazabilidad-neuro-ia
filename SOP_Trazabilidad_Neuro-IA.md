@@ -188,11 +188,13 @@ Cada codigo QR y etiqueta debe ser unico, intransferible y acumulativo.
 
 Formato:
 
-`[GENETICA]-PM-[NUM]-[YY]`
+`[PREFIJO_3L]-PM-[NUM]-[YY]`
 
 Ejemplo:
 
-`CBG-PM-1-26`
+`PAC-PM-1-26`
+
+Donde `PREFIJO_3L` corresponde a las 3 primeras letras de la genetica en mayusculas.
 
 #### 9.2 Clon (`CL`)
 
@@ -255,7 +257,20 @@ El sistema debe bloquear automaticamente cualquier salto de fase.
 
 #### 11.1 Alta de genetica base
 
-La genetica base debe existir previamente en `Sheet_Genetica` con sus datos tecnicos y, cuando sea posible, su imagen y documentos asociados.
+La genetica base puede darse de alta directamente en la app en modo local-first y despues sincronizarse con la hoja maestra.
+
+Campos recomendados:
+
+- Variedad
+- Linaje
+- Imagen URL
+- Documentos URL
+- Quimiotipo
+- Cannabinoides URL
+- Terpenos URL
+- Notas
+
+La genetica debe quedar disponible inmediatamente para nuevas madres, visor QR, catalogo visual y etiquetado.
 
 #### 11.2 Alta de planta madre
 
@@ -313,6 +328,8 @@ La etiqueta debe contener como minimo:
 - estado de sincronizacion
 
 El QR debe abrir la ficha visual del nodo en la app usando el patron `?search=<ID>`.
+
+Cuando el acceso se realiza desde QR en movil, la app debe abrir la ficha en modo standalone, sin menu lateral, sin cabecera global, sin buscador manual, sin historial del nodo y sin controles de edicion local.
 
 ---
 
@@ -438,6 +455,11 @@ El sistema debe conservar historial de:
 - resoluciones de conflicto
 - restauraciones de backup
 
+Cuando la accion provenga de la interfaz, el evento debe registrar tambien:
+
+- actor
+- rol
+
 La pantalla de `Auditoria` debe permitir filtrado y exportacion.
 
 ---
@@ -472,6 +494,25 @@ Se recomienda exportar backup:
 | **Responsable de Calidad (QA)** | Verificar trazabilidad con Visor QR, auditar pesos humedos, revisar historial y resolver incidencias operativas junto a administracion. |
 | **Director de Cultivo**         | Aprobar nuevas geneticas, validar operativa, supervisar consistencia de la hoja maestra y tomar decisiones sobre conflictos relevantes. |
 | **Responsable Tecnico**         | Mantener credenciales, espejo local, sincronizacion, backups, restauraciones y soporte del sistema.                                     |
+
+### 20.1 Roles y permisos de acceso en la app
+
+El sistema debe aplicar perfiles operativos diferenciados:
+
+- **Operario**
+  - acceso a altas, etiquetado, visor QR, geneticas, labores y auditoria operativa
+  - sin acceso a acciones tecnicas de sincronizacion o backup
+- **Calidad (QA)**
+  - acceso a visor QR, geneticas, auditoria y labores
+  - sin edicion local ni restauracion tecnica
+- **Direccion de Cultivo**
+  - acceso a supervision general, auditoria, conflictos y coordinacion operativa
+- **Responsable Tecnico**
+  - acceso a sincronizacion, backups, restauracion, resolucion de conflictos y mantenimiento del sistema
+
+Las labores mostradas por la app pueden adaptarse por rol segun bloque funcional.
+
+El acceso actual puede realizarse mediante seleccion de usuario local al entrar en la app, quedando el rol asociado visible en cabecera y auditoria.
 
 ---
 
