@@ -26,6 +26,10 @@ Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sinc
   - restauracion desde UI y API
   - recomendaciones operativas
 
+- `docs/PROMPTS_ANTIGRAVITY.md`
+  - prompts por fases para reconstruir el sistema en Antigravity
+  - prompt unico maestro listo para copiar y pegar
+
 ## Resumen funcional
 
 La app permite:
