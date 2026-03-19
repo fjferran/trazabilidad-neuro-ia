@@ -5,3 +5,7 @@ credenciales.json
 *.log
 dist/
 local_mirror/
+legacy/
+scripts/
+plan.md
+plan-v2.md
