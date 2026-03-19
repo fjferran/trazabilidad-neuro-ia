@@ -3,3 +3,5 @@ node_modules/
 credenciales.json
 .gemini/
 *.log
+dist/
+local_mirror/
