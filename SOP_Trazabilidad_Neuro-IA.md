@@ -1,80 +1,514 @@
-# Procedimiento Operativo Estándar (SOP)
-## 📝 Trazabilidad Cannábica Integral (6 Niveles)
+# Procedimiento Operativo Estandar (SOP)
 
-| Empresa: Neuro-IA | Código: SOP-TRA-001 | Versión: 3.0 |
-|-------------------|---------------------|--------------|
-| **Título:** Gestión de Trazabilidad desde Genética hasta Cosecha | **Fecha Vigor:** 18/03/2026 | **Páginas:** 1 de 1 |
+## Trazabilidad Cannabica Integral Offline-First (6 Niveles)
 
----
-
-### 🕒 1. Historial de Revisiones
-| Versión | Fecha | Descripción del Cambio | Autor |
-|---------|-------|------------------------|-------|
-| 1.0 | 15/03/2026 | Creación inicial del sistema de 4 niveles. | Neuro-IA Team |
-| 2.0 | 17/03/2026 | Ampliación a 6 niveles (Floración y Cosecha) y sufijos acumulativos. | Neuro-IA Team |
-| 2.1 | 18/03/2026 | Formalización de estructura SOP industrial (GACP). | Neuro-IA Team |
-| 3.0 | 18/03/2026 | Reestructuración de nomenclatura ID, actualización de base de datos a `trazabilidad_nueva` y motor de rastreo de linaje automatizado. | Neuro-IA Team |
+| Empresa: Neuro-IA                                                | Codigo: SOP-TRA-001         | Version: 4.0        |
+| ---------------------------------------------------------------- | --------------------------- | ------------------- |
+| **Titulo:** Gestion de Trazabilidad desde Genetica hasta Cosecha | **Fecha Vigor:** 19/03/2026 | **Paginas:** 1 de 1 |
 
 ---
 
-### 👪 2. Lista de Distribución
-*   **Copia Digital 01**: Dirección de Cultivo (Servidor Central).
-*   **Copia Digital 02**: Responsable de Calidad (QA).
-*   **Copia Digital 03**: Acceso Terminales de Sala (App Móvil/Web).
+### 1. Historial de Revisiones
+
+| Version | Fecha      | Descripcion del Cambio                                                                                                 | Autor         |
+| ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 1.0     | 15/03/2026 | Creacion inicial del sistema de 4 niveles.                                                                             | Neuro-IA Team |
+| 2.0     | 17/03/2026 | Ampliacion a 6 niveles (Floracion y Cosecha) y sufijos acumulativos.                                                   | Neuro-IA Team |
+| 2.1     | 18/03/2026 | Formalizacion de estructura SOP industrial (GACP).                                                                     | Neuro-IA Team |
+| 3.0     | 18/03/2026 | Reestructuracion de nomenclatura ID y motor de rastreo de linaje automatizado.                                         | Neuro-IA Team |
+| 4.0     | 19/03/2026 | Ampliacion a operativa offline-first con copia espejo local, cola de sincronizacion, auditoria, backup y recuperacion. | Neuro-IA Team |
 
 ---
 
-### 🎯 3. Objetivo y Propósito
-Garantizar la identificación inequívoca de cada lote de plantas en todas sus fases biológicas, permitiendo una reconstrucción retrospectiva completa (desde el producto final cosechado hasta su genética original) para cumplir con los estándares de calidad GACP y requisitos legales de trazabilidad. El sistema garantiza el bloqueo automático de saltos de fase (ej. no se puede pasar a floración sin pasar por vegetativo).
+### 2. Lista de Distribucion
+
+- **Copia Digital 01**: Direccion de Cultivo.
+- **Copia Digital 02**: Responsable de Calidad (QA).
+- **Copia Digital 03**: Terminales de Sala / Operarios.
+- **Copia Digital 04**: Administracion Tecnica del Sistema.
 
 ---
 
-### 🛠️ 4. Equipo y Suministros
-*   **Hardware**: Impresora térmica de etiquetas, Terminales de Administración (Web).
-*   **Software**: Google Sheets (Base de Datos Operativa `trazabilidad_nueva`), Panel de Administración Neuro-IA (App Web), Motor de Trazabilidad Retrospectiva.
-*   **Materiales**: Etiquetas sintéticas resistentes a humedad y luz UV, Sustrato de impresión.
+### 3. Objetivo y Proposito
+
+Garantizar la identificacion inequivoca de cada lote, planta y fase biologica desde la genetica base hasta la cosecha final, permitiendo:
+
+- reconstruccion retrospectiva completa del linaje
+- bloqueo de saltos de fase
+- operacion continua en local aunque falle internet
+- sincronizacion posterior con la hoja maestra en Google Drive
+- evidencia auditable de altas, cambios, lecturas QR, conflictos y restauraciones
+
+Este SOP adapta la operativa de cultivo al modelo digital offline-first de Neuro-IA Trazabilidad.
 
 ---
 
-### ⚙️ 5. Procedimiento Operativo
+### 4. Alcance
 
-#### 5.1 Jerarquía y Codificación Profesional (Autogenerada)
-Cada código QR y etiqueta debe ser único e intransferible. El sistema (App Web) utiliza una **nomenclatura acumulativa y estricta** por fase biológica que permite deducir el linaje completo leyendo el ID de atrás hacia adelante:
+Aplica a:
 
-1.  **Madres (`PM`)**: `[VARIEDAD]-PM-[NUM]-[AÑO]`
-    *   *Ejemplo:* `CBG-PM-1-26` (Genética CBG, Planta Madre nº 1, Año 2026).
-2.  **Clones (`CL`)**: Toma la ID exacta de la madre y añade un sufijo correlativo del lote de esquejes.
-    *   *Ejemplo:* `CBG-PM-1-26-CL-1` (Lote de clones nº 1 proveniente de la madre CBG nº 1).
-3.  **Lote Vegetativo (`V`)**: Toma la ID del lote de clones que ha enraizado y le añade el sufijo **V**.
-    *   *Ejemplo:* `CBG-PM-1-26-CL-1-V`
-4.  **Floración (`F`)**: Toma la ID del lote vegetativo y le añade el sufijo **F**.
-    *   *Ejemplo:* `CBG-PM-1-26-CL-1-VF`
-5.  **Cosecha (`C`)**: Toma la ID del lote en floración que ha sido cortado y le añade el sufijo **C**.
-    *   *Ejemplo:* `CBG-PM-1-26-CL-1-VFC`
-
-#### 5.2 Registro de Datos y Operativa en Panel
-*   **Restricción de Origen:** El alta de una nueva fase está estrictamente vinculada a la existencia de la fase anterior (ej. el sistema solo permite crear un lote vegetativo seleccionando un lote de clones válido del desplegable).
-*   **Automatización de Etiquetas:** Tras el alta de cualquier fase, el operario debe acceder a la pestaña **"Etiquetado"** e imprimir térmicamente la nueva etiqueta QR para colocarla inmediatamente en la bandeja o maceta correspondiente.
-*   **Peso de Cosecha:** Es obligatorio registrar el **Peso Húmedo (g)** inmediatamente tras el corte en la pestaña de Alta "COSECHA".
-
-#### 5.3 Verificación Retrospectiva
-En caso de auditoría o revisión de calidad, el responsable (QA) utilizará el módulo **"Visor QR"** para escanear cualquier lote. El sistema Neuro-IA mostrará la ficha del lote y desplegará automáticamente el **Árbol de Trazabilidad Completa (Linaje)** hasta llegar a la genética base.
+- geneticas maestras
+- plantas madre
+- lotes de clones
+- lotes vegetativos
+- lotes en floracion
+- lotes de cosecha
+- etiquetado QR
+- verificaciones QA
+- sincronizacion operativa con Google Sheets
+- respaldo y recuperacion del sistema local
 
 ---
 
-### ⚖️ 6. Responsabilidades
-| Cargo | Responsabilidad |
-|-------|----------------|
-| **Operario de Sala** | Ejecutar altas en el Panel y colocar las etiquetas físicas generadas en tiempo real. |
-| **Responsable de Calidad (QA)** | Verificar la trazabilidad mediante el Visor QR y auditar la exactitud de los pesos húmedos. |
-| **Director de Cultivo** | Supervisar la Base de Datos (`trazabilidad_nueva`) y aprobar la destrucción de lotes o inserción de nuevas genéticas maestras. |
+### 5. Equipo, Software y Recursos
+
+#### 5.1 Hardware
+
+- ordenador o terminal local de operacion
+- impresora termica de etiquetas QR
+- dispositivos moviles para lectura QR
+- almacenamiento local suficiente para snapshot, historial y assets
+
+#### 5.2 Software
+
+- App Web Neuro-IA Trazabilidad
+- Google Sheets como hoja maestra remota
+- navegador moderno
+- servicio local Node/Express para backend y sincronizacion
+
+#### 5.3 Datos y activos
+
+- hoja maestra compartida con la cuenta de servicio
+- credenciales de Google autorizadas
+- imagenes, PDFs y enlaces documentales asociados a geneticas y lotes
 
 ---
 
-### 📚 7. Referencias
-*   **GACP**: Good Agricultural and Collection Practices for Starting Materials of Herbal Origin (EMA).
-*   **Regulación Local**: Normativa vigente para el cultivo de cannabis industrial/médico.
+### 6. Definiciones operativas
+
+- **Nodo**: cada fila trazable del sistema.
+- **Origen**: nodo anterior del que deriva la fase actual.
+- **Espejo local**: copia persistente en disco de los datos remotos y de trabajo local.
+- **Cola de sincronizacion**: conjunto de operaciones locales pendientes de subir a Google Sheets.
+- **Conflicto**: discrepancia entre dato local y dato remoto que requiere decision manual.
+- **Visor QR**: modulo que muestra la ficha visual de un nodo y su linaje.
 
 ---
+
+### 7. Estructura funcional del sistema
+
+La trazabilidad se organiza en 6 niveles:
+
+1. **Genetica Base** (`Sheet_Genetica`)
+2. **Planta Madre** (`Sheet_Madres`)
+3. **Lote de Clones** (`Sheet_Clones`)
+4. **Lote Vegetativo** (`Sheet_Lotes`)
+5. **Lote de Floracion** (`Sheet_Floracion`)
+6. **Lote de Cosecha** (`Sheet_Cosecha`)
+
+Cada nivel depende estrictamente del anterior.
+
+---
+
+### 8. Estructura minima obligatoria de datos
+
+#### 8.1 Sheet_Genetica
+
+- ID Genetica
+- Variedad
+- Linaje
+- Notas
+- Imagen_URL
+- Documentos_URL
+- Quimiotipo
+- Cannabinoides
+- Imagen_Etiqueta
+- Terpenos
+- Notas_Extra
+
+#### 8.2 Sheet_Madres
+
+- ID Madre
+- Genetica
+- Ubicacion
+- Fecha
+- Estado
+- Imagen
+- Notas
+
+#### 8.3 Sheet_Clones
+
+- ID Clon
+- Madre Origen
+- Genetica
+- Fecha
+- Cantidad
+- Estado
+- Notas
+
+#### 8.4 Sheet_Lotes
+
+- ID Lote
+- ID Origen
+- Ubicacion
+- Fecha
+- Estado
+- Cantidad
+- Notas
+
+#### 8.5 Sheet_Floracion
+
+- ID Lote
+- ID Origen
+- Fecha
+- Ubicacion
+- Estado
+- Cantidad
+- Notas
+
+#### 8.6 Sheet_Cosecha
+
+- ID Lote
+- ID Origen
+- Fecha Cosecha
+- Peso Humedo (g)
+- Peso Seco (g)
+- Ubicacion
+- Notas
+
+No deben alterarse columnas sin validacion del Responsable Tecnico y QA.
+
+---
+
+### 9. Jerarquia e identificacion profesional
+
+Cada codigo QR y etiqueta debe ser unico, intransferible y acumulativo.
+
+#### 9.1 Madre (`PM`)
+
+Formato:
+
+`[GENETICA]-PM-[NUM]-[YY]`
+
+Ejemplo:
+
+`CBG-PM-1-26`
+
+#### 9.2 Clon (`CL`)
+
+Formato:
+
+`[ID_MADRE]-CL-[NUM]`
+
+Ejemplo:
+
+`CBG-PM-1-26-CL-1`
+
+#### 9.3 Vegetativo (`V`)
+
+Formato:
+
+`[ID_CLON]-V`
+
+Ejemplo:
+
+`CBG-PM-1-26-CL-1-V`
+
+#### 9.4 Floracion (`F`)
+
+Formato:
+
+`[ID_VEGETATIVO]F`
+
+Ejemplo:
+
+`CBG-PM-1-26-CL-1-VF`
+
+#### 9.5 Cosecha (`C`)
+
+Formato:
+
+`[ID_FLORACION]C`
+
+Ejemplo:
+
+`CBG-PM-1-26-CL-1-VFC`
+
+---
+
+### 10. Restricciones de origen y control de fase
+
+Reglas obligatorias:
+
+- no se crea madre sin genetica valida
+- no se crea clon sin madre valida
+- no se crea vegetativo sin clon valido
+- no se crea floracion sin vegetativo valido
+- no se crea cosecha sin floracion valida
+- no se aceptan IDs duplicadas en local o en cola pendiente
+
+El sistema debe bloquear automaticamente cualquier salto de fase.
+
+---
+
+### 11. Procedimiento operativo diario
+
+#### 11.1 Alta de genetica base
+
+La genetica base debe existir previamente en `Sheet_Genetica` con sus datos tecnicos y, cuando sea posible, su imagen y documentos asociados.
+
+#### 11.2 Alta de planta madre
+
+El operario:
+
+1. abre la seccion de altas
+2. selecciona la genetica origen
+3. introduce ubicacion, fecha y notas
+4. guarda el registro
+5. el sistema genera la ID automaticamente
+6. imprime la etiqueta QR
+
+#### 11.3 Alta de lote de clones
+
+1. seleccionar la madre origen
+2. indicar fecha, cantidad y notas
+3. registrar
+4. imprimir etiqueta QR
+
+#### 11.4 Alta de lote vegetativo
+
+1. seleccionar el clon origen
+2. indicar ubicacion, fecha, cantidad y notas
+3. registrar
+4. imprimir etiqueta QR
+
+#### 11.5 Alta de lote en floracion
+
+1. seleccionar vegetativo origen
+2. indicar ubicacion, fecha, cantidad y notas
+3. registrar
+4. imprimir etiqueta QR
+
+#### 11.6 Alta de cosecha
+
+1. seleccionar floracion origen
+2. registrar fecha de cosecha
+3. registrar peso humedo obligatorio
+4. registrar peso seco cuando proceda
+5. registrar ubicacion y notas
+6. imprimir etiqueta QR si aplica
+
+---
+
+### 12. Etiquetado QR
+
+Tras cada alta, el operario debe acceder a `Etiquetado`.
+
+La etiqueta debe contener como minimo:
+
+- QR del nodo
+- ID completa
+- tipo de nodo
+- variedad o contexto si aplica
+- estado de sincronizacion
+
+El QR debe abrir la ficha visual del nodo en la app usando el patron `?search=<ID>`.
+
+---
+
+### 13. Verificacion retrospectiva y control QA
+
+El Responsable de Calidad debe usar `Visor QR` para:
+
+- escanear o buscar una ID
+- revisar imagen, hoja y fila origen
+- comprobar los datos de la fase actual
+- verificar el origen inmediato
+- revisar el linaje completo hasta genetica
+- consultar historial del nodo
+
+En auditoria, el sistema debe mostrar la cadena completa sin depender de acceso manual a la hoja remota.
+
+---
+
+### 14. Operativa offline-first
+
+#### 14.1 Principio general
+
+La aplicacion trabaja primero en local y sincroniza despues.
+
+#### 14.2 Lectura
+
+- si Google esta disponible, se refresca el espejo
+- si Google falla, se sigue operando desde la copia local
+
+#### 14.3 Escritura
+
+- toda alta o edicion se escribe primero en local
+- la operacion se encola para sincronizacion posterior
+- el cambio debe verse inmediatamente en visor y etiquetado
+
+#### 14.4 Copia espejo local
+
+El sistema mantiene:
+
+- `snapshot.json`
+- `asset-manifest.json`
+- `sync-queue.json`
+- `history.json`
+- carpeta `assets/`
+
+---
+
+### 15. Sincronizacion con Google Sheets
+
+La sincronizacion se hace en segundo plano o por accion manual.
+
+Estados posibles de una operacion:
+
+- `pending`
+- `synced`
+- `sync_error`
+- `conflict`
+- `discarded`
+
+El panel de sincronizacion debe permitir:
+
+- ver operaciones pendientes
+- reintentar
+- descartar
+- resolver conflictos
+
+---
+
+### 16. Conflictos
+
+Un conflicto ocurre cuando el dato local no puede sincronizarse limpiamente con Google Sheets.
+
+Caso principal:
+
+- ID ya existente en remoto
+
+El sistema debe mostrar:
+
+- datos locales
+- datos remotos
+- motivo del conflicto
+
+Resoluciones permitidas:
+
+- **Mantener local**: sobrescribir remoto con el dato local
+- **Mantener remoto**: descartar la operacion local conflictiva
+
+Solo personal autorizado debe resolver conflictos.
+
+---
+
+### 17. Edicion local controlada
+
+Se permite editar campos seguros cuando el nodo este sincronizado.
+
+Campos tipicos editables:
+
+- Ubicacion
+- Estado
+- Cantidad
+- Fecha
+- Fecha Cosecha
+- Peso Humedo (g)
+- Peso Seco (g)
+- Notas
+
+No debe editarse el identificador raiz del nodo desde operativa ordinaria.
+
+---
+
+### 18. Auditoria y registro de evidencias
+
+El sistema debe conservar historial de:
+
+- lecturas QR (`node_view`)
+- altas locales
+- ediciones locales
+- sincronizaciones remotas correctas
+- errores de sincronizacion
+- conflictos detectados
+- reintentos
+- descartes
+- resoluciones de conflicto
+- restauraciones de backup
+
+La pantalla de `Auditoria` debe permitir filtrado y exportacion.
+
+---
+
+### 19. Backup y recuperacion
+
+La operativa debe permitir:
+
+- exportar backup completo del espejo local
+- importar backup previamente exportado
+
+El backup debe incluir:
+
+- snapshot de rangos
+- cola de sincronizacion
+- manifest de assets
+- metadatos del espejo
+
+Se recomienda exportar backup:
+
+- antes de cambios estructurales
+- antes de mantenimiento tecnico
+- antes de migrar a otra maquina
+
+---
+
+### 20. Responsabilidades
+
+| Cargo                           | Responsabilidad                                                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Operario de Sala**            | Registrar altas, imprimir etiquetas, verificar colocacion fisica, reportar incidencias de escaneo o sync.                               |
+| **Responsable de Calidad (QA)** | Verificar trazabilidad con Visor QR, auditar pesos humedos, revisar historial y resolver incidencias operativas junto a administracion. |
+| **Director de Cultivo**         | Aprobar nuevas geneticas, validar operativa, supervisar consistencia de la hoja maestra y tomar decisiones sobre conflictos relevantes. |
+| **Responsable Tecnico**         | Mantener credenciales, espejo local, sincronizacion, backups, restauraciones y soporte del sistema.                                     |
+
+---
+
+### 21. Controles obligatorios
+
+- comprobacion diaria de estado del espejo local
+- comprobacion diaria de cola pendiente
+- verificacion de que no existan conflictos abiertos sin revision
+- verificacion semanal de exportacion de backup
+- verificacion de lectura QR en terminal movil
+
+---
+
+### 22. Criterios de aceptacion operativa
+
+El sistema se considera conforme si:
+
+- las fases se crean sin saltos de origen
+- las IDs son unicas y acumulativas
+- los QR muestran la ficha visual correcta
+- el linaje se reconstruye hasta genetica
+- la app sigue operando con internet intermitente
+- las operaciones pendientes se reflejan en cola
+- los conflictos se detectan y resuelven manualmente
+- existen backups exportables y restaurables
+- la auditoria registra lecturas y cambios
+
+---
+
+### 23. Referencias
+
+- GACP: Good Agricultural and Collection Practices for Starting Materials of Herbal Origin (EMA)
+- Normativa local aplicable al cultivo y trazabilidad
+- Documentacion interna de Neuro-IA Trazabilidad
+- Arquitectura tecnica del sistema y guias operativas asociadas
+
+---
+
 **Neuro-IA | Excelencia en Trazabilidad Digital**  
-*Documento mantenido y ejecutado automáticamente por el Sistema Neuro-IA*
+_Documento mantenido y ejecutado conjuntamente por el sistema Neuro-IA y su operativa interna._
