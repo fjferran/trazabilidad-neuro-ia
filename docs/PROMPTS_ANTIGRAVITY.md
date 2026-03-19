@@ -57,6 +57,8 @@ Quiero que diseñes y dejes implementada una arquitectura con estas caracteristi
 - deteccion de conflictos y resolucion manual
 - auditoria de cambios y lecturas
 - exportacion e importacion de backups
+- usuarios locales con permisos por rol
+- checklist de labores por turno
 
 Cada fila de Google Sheets debe convertirse en un nodo enlazado con su origen inmediato.
 
@@ -136,9 +138,12 @@ Implementa el frontend base de la app con React.
 Quiero estas vistas:
 - Dashboard
 - Geneticas
+- Labores
 - Pasaporte/Altas
 - Visor QR
 - Etiquetado
+
+Ademas, quiero una capa simple de login local con usuarios predefinidos y rol persistido en navegador.
 
 Requisitos visuales:
 - interfaz clara, profesional y usable en desktop y movil

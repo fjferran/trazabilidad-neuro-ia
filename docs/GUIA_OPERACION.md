@@ -15,6 +15,8 @@ El sistema opera en 6 fases:
 5. Floracion
 6. Cosecha
 
+Adicionalmente, la app incluye una pestaña de `Labores` para checklist operativa diaria por turno.
+
 ## 2.1 Roles operativos
 
 La app distingue estos perfiles:
@@ -25,6 +27,13 @@ La app distingue estos perfiles:
 - `Técnico Sistema`: sincronizacion, backups, conflictos y mantenimiento
 
 El acceso actual se realiza mediante seleccion de usuario local al entrar en la app. El rol asociado al usuario modifica las vistas y acciones disponibles en la interfaz.
+
+Resumen práctico:
+
+- `Operario`: trabajo diario, altas, etiquetado, visor y auditoría operativa
+- `Calidad`: revisión, auditoría y trazabilidad
+- `Dirección Cultivo`: supervisión, validación y decisiones operativas
+- `Técnico Sistema`: sincronización, backups, conflictos y mantenimiento
 
 ## 3. Alta de nuevas entidades
 
@@ -82,6 +91,18 @@ Entrar en `Etiquetado`.
 - imprimir la etiqueta QR
 
 El QR abre el visor visual del nodo.
+
+## 4.1 Labores
+
+La pestaña `Labores` funciona como checklist diario por fecha y turno.
+
+Características:
+
+- persistencia local por navegador
+- progreso global del turno
+- progreso por bloque
+- bloques visibles según rol
+- roles recomendados por bloque de trabajo
 
 ## 5. Visor QR
 
@@ -154,3 +175,11 @@ Los eventos nuevos de auditoria muestran tambien actor y rol del usuario cuando 
 La auditoria global completa debe estar orientada principalmente a `Calidad`, `Dirección Cultivo` y `Técnico Sistema`, aunque `Operario` puede visualizar una version operativa en la interfaz actual.
 
 Permite filtrar y exportar historial.
+
+Los eventos nuevos pueden mostrar:
+
+- actor
+- rol
+- nodo
+- hoja
+- fecha/hora

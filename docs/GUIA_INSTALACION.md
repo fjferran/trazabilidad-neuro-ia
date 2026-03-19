@@ -81,10 +81,18 @@ URL:
 Verificar:
 
 1. la app abre
-2. el dashboard carga
-3. el sidebar muestra estado `Conectado`
-4. `Google Sheets activo`
-5. el espejo local se inicializa
+2. aparece la pantalla de seleccion de usuario local
+3. el dashboard carga
+4. el sidebar muestra estado `Conectado`
+5. `Google Sheets activo`
+6. el espejo local se inicializa
+
+Usuarios locales iniciales esperados:
+
+- `Operario Sala`
+- `Responsable QA`
+- `Dirección Cultivo`
+- `Técnico Sistema`
 
 ## 9. Ficheros locales generados
 

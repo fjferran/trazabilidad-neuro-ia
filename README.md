@@ -17,6 +17,8 @@ Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sinc
 - `docs/GUIA_OPERACION.md`
   - flujo diario de trabajo
   - altas por fase
+  - usuarios y roles
+  - labores operativas
   - etiquetado QR
   - visor QR
   - sincronizacion y conflictos
@@ -37,7 +39,9 @@ La app permite:
 - gestionar geneticas, madres, clones, vegetativos, floracion y cosecha
 - generar IDs acumulativas y QR por nodo
 - dar de alta geneticas y fases productivas en modo local-first
+- operar con usuarios locales y permisos por rol
 - mostrar fichas visuales de trazabilidad enlazada
+- usar una pestaña de `Labores` como checklist operativo por turno
 - trabajar en local aunque falle internet
 - sincronizar despues con Google Sheets
 - descargar y servir assets locales

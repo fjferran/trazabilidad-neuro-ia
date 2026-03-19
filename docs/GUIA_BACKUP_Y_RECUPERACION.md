@@ -38,6 +38,7 @@ La app recarga:
 - cola
 - opciones visuales
 - estado de sincronizacion
+- disponibilidad de usuarios/roles al volver a entrar en la app
 
 ## 5. Restaurar backup por API
 

@@ -2,7 +2,7 @@
 
 ## Trazabilidad Cannabica Integral Offline-First (6 Niveles)
 
-| Empresa: Neuro-IA                                                | Codigo: SOP-TRA-001         | Version: 4.0        |
+| Empresa: Neuro-IA                                                | Codigo: SOP-TRA-001         | Version: 4.1        |
 | ---------------------------------------------------------------- | --------------------------- | ------------------- |
 | **Titulo:** Gestion de Trazabilidad desde Genetica hasta Cosecha | **Fecha Vigor:** 19/03/2026 | **Paginas:** 1 de 1 |
 
@@ -17,6 +17,7 @@
 | 2.1     | 18/03/2026 | Formalizacion de estructura SOP industrial (GACP).                                                                     | Neuro-IA Team |
 | 3.0     | 18/03/2026 | Reestructuracion de nomenclatura ID y motor de rastreo de linaje automatizado.                                         | Neuro-IA Team |
 | 4.0     | 19/03/2026 | Ampliacion a operativa offline-first con copia espejo local, cola de sincronizacion, auditoria, backup y recuperacion. | Neuro-IA Team |
+| 4.1     | 20/03/2026 | Integracion de usuarios locales por rol, auditoria con actor/rol y modulo de labores operativas por turno.             | Neuro-IA Team |
 
 ---
 
@@ -57,6 +58,8 @@ Aplica a:
 - verificaciones QA
 - sincronizacion operativa con Google Sheets
 - respaldo y recuperacion del sistema local
+- control operativo por usuario y rol
+- checklist de labores por turno
 
 ---
 
@@ -75,6 +78,7 @@ Aplica a:
 - Google Sheets como hoja maestra remota
 - navegador moderno
 - servicio local Node/Express para backend y sincronizacion
+- selector de usuario local con permisos por rol
 
 #### 5.3 Datos y activos
 
@@ -92,6 +96,7 @@ Aplica a:
 - **Cola de sincronizacion**: conjunto de operaciones locales pendientes de subir a Google Sheets.
 - **Conflicto**: discrepancia entre dato local y dato remoto que requiere decision manual.
 - **Visor QR**: modulo que muestra la ficha visual de un nodo y su linaje.
+- **Labores**: checklist operativa por turno para tareas clave del cultivo.
 
 ---
 
@@ -513,6 +518,18 @@ El sistema debe aplicar perfiles operativos diferenciados:
 Las labores mostradas por la app pueden adaptarse por rol segun bloque funcional.
 
 El acceso actual puede realizarse mediante seleccion de usuario local al entrar en la app, quedando el rol asociado visible en cabecera y auditoria.
+
+### 20.2 Modulo de labores
+
+La app debe incluir un modulo de `Labores` con checklist diaria por fecha y turno.
+
+Debe permitir:
+
+- marcar tareas realizadas
+- visualizar progreso global
+- visualizar progreso por bloque
+- adaptar bloques visibles por rol
+- conservar el estado localmente por navegador y turno
 
 ---
 

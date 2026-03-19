@@ -30,6 +30,8 @@ La aplicacion debe:
 - sincronizar despues contra Google Sheets
 - mantener copia local persistente de datos y assets
 - ofrecer auditoria, conflictos, backup y restauracion
+- soportar usuarios locales con permisos por rol
+- incluir una vista de labores/checklist operativa por turno
 
 ## 3. Contexto operativo
 
@@ -107,6 +109,29 @@ Debe permitir:
 - editar registros existentes en local
 - encolar sincronizaciones pendientes
 - reintentar, descartar y resolver conflictos
+
+### 4.4.1 Usuarios y permisos
+
+La aplicacion debe soportar autenticacion local simple basada en seleccion de usuario persistida en navegador.
+
+Cada usuario debe tener un rol operativo que controle:
+
+- vistas visibles
+- acciones de sincronizacion
+- acciones de backup y restauracion
+- edicion local de nodos
+
+### 4.4.2 Labores operativas
+
+La app debe incluir una pestaña `Labores` como checklist por fecha y turno.
+
+Debe soportar:
+
+- bloques por area de trabajo
+- progreso global
+- progreso por bloque
+- persistencia local por navegador
+- visibilidad segun rol
 
 ### 4.5 Auditoria
 
@@ -673,6 +698,8 @@ Las labores tambien pueden mostrar rol recomendado por bloque funcional.
 
 La autenticacion actual puede ser local y simple, con seleccion de usuario persistida en navegador, siempre que el sistema refleje el rol activo en permisos y auditoria.
 
+La autenticacion actual puede ser local y simple, con seleccion de usuario persistida en navegador, siempre que el sistema refleje el rol activo en permisos y auditoria.
+
 ## 24. Estructura de carpetas minima
 
 ```text
@@ -759,6 +786,7 @@ Actualmente ya existe una implementacion funcional de:
 - usuarios locales con rol activo en interfaz
 - actor y rol visibles en eventos nuevos de auditoria
 - export/import de backup
+- checklist de labores por turno con persistencia local
 
 ## 28. Trabajo futuro recomendado
 
