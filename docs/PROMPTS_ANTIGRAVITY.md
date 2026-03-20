@@ -59,6 +59,7 @@ Quiero que diseñes y dejes implementada una arquitectura con estas caracteristi
 - exportacion e importacion de backups
 - usuarios locales con permisos por rol
 - checklist de labores por turno
+- registro de actor y rol en auditoria
 
 Cada fila de Google Sheets debe convertirse en un nodo enlazado con su origen inmediato.
 
@@ -92,12 +93,14 @@ Requisitos:
 - definicion centralizada de hojas y columnas
 - normalizacion de cada fila como nodo
 - indice relacional en memoria por ID y por tipo
+- soporte para alta local-first de geneticas base
 - rutas:
   - GET /api/health
   - GET /api/options
   - GET /api/search/:id
   - GET /api/trace/:id
   - POST /api/entity
+  - PATCH /api/node/:id
 
 Modelo de nodo esperado:
 - id
@@ -151,8 +154,10 @@ Requisitos visuales:
 - dashboard con estado del sistema
 - vista de geneticas con fotos y enlaces
 - modulo de altas por fase
+- modulo de alta de geneticas
 - visor QR con ficha visual del nodo y su linaje
 - etiquetado con generacion de QR e impresion
+- auditoria global filtrable
 
 Conecta el frontend al backend usando Axios.
 
@@ -224,6 +229,8 @@ Validaciones obligatorias:
 Quiero que POST /api/entity calcule el ID definitivo en backend y no dependa solo del frontend.
 
 Tambien adapta el formulario frontend para que muestre contexto del origen seleccionado.
+
+Incluye tambien alta de genetica base, con ID autoderivada de la variedad y sincronizacion local-first.
 ```
 
 ---
@@ -353,6 +360,8 @@ Registrar eventos como:
 - conflict_resolve_local
 - conflict_resolve_remote
 - backup_restored
+- entity_created_via_ui
+- entity_updated_via_ui
 
 Requisitos:
 - persistir en local_mirror/history.json
@@ -361,6 +370,67 @@ Requisitos:
 - GET /api/history/export
 - pantalla de auditoria con filtros por texto y accion
 - exportacion JSON desde la UI
+- mostrar actor y rol cuando la accion provenga de la interfaz
+```
+
+---
+
+## 10.1 Prompt de Usuarios, Roles y Permisos
+
+```text
+Quiero una capa simple de autenticacion local para la app.
+
+Requisitos:
+- login simple por seleccion de usuario local
+- sesion persistida en navegador
+- boton salir
+
+Usuarios iniciales:
+- Operario Sala -> rol operario
+- Responsable QA -> rol qa
+- Dirección Cultivo -> rol cultivo
+- Técnico Sistema -> rol tecnico
+
+Permisos esperados:
+- Operario: dashboard, labores, pasaporte, visor QR, etiquetado, geneticas y auditoria operativa
+- Calidad: dashboard, labores, visor QR, geneticas y auditoria
+- Dirección Cultivo: acceso amplio
+- Técnico Sistema: acceso amplio + sync/backup/conflictos/edicion
+
+Quiero que el rol controle:
+- navegacion visible
+- edicion local
+- sincronizacion manual
+- import/export backup
+- resolucion de conflictos
+
+Ademas, quiero que las peticiones al backend incluyan usuario y rol para poder registrarlos en auditoria.
+```
+
+---
+
+## 10.2 Prompt de Labores Operativas
+
+```text
+Quiero una pestaña llamada Labores con checklist interactivo por jornada.
+
+Requisitos:
+- bloques de labores por fase o area del cultivo
+- checklist clickable
+- progreso global
+- progreso por bloque
+- selector de turno (mañana, tarde, noche)
+- persistencia local por fecha y turno
+- roles recomendados por bloque
+- visibilidad de bloques segun rol
+
+Incluye como minimo bloques para:
+- Genética y Madres
+- Clonado y Enraizado
+- Vegetativo
+- Floración
+- Cosecha y Postcosecha
+- Calidad, Sync y Sistema
 ```
 
 ---
@@ -410,6 +480,8 @@ La documentacion debe incluir:
 - reglas de IDs
 - arquitectura frontend/backend
 - espejo local y cola
+- usuarios locales, roles y permisos
+- labores operativas por turno
 - endpoints y contratos
 - flujo QR
 - sincronizacion y conflictos
@@ -620,6 +692,8 @@ El Visor QR debe mostrar:
 - origen inmediato
 - ruta completa hasta genetica
 - historial del nodo
+
+En modo QR standalone quiero una ficha limpia, orientada a movil, y si el nodo es una madre debe enlazar visualmente con la genetica final. Si el nodo no es genetica, quiero una tarjeta final con imagen y enlaces de la genetica final.
 - edicion local-first de campos seguros
 
 El modulo de Etiquetado debe:
