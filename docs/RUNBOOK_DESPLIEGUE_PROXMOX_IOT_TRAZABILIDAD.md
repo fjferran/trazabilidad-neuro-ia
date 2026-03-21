@@ -402,3 +402,36 @@ El sistema se considera listo para produccion cuando:
   - `mqtt-broker`
 - anadir `Home Assistant` solo cuando el nucleo este estable
 - mantener simple la primera puesta en marcha
+
+## 25. Estado objetivo de operacion en Mini PC
+
+Una vez completado el despliegue, el Mini PC debe quedar con este estado operativo:
+
+- aplicacion en `/opt/trazabilidad`
+- `trazabilidad.service` habilitado y arrancado automaticamente
+- `mosquitto.service` habilitado y arrancado automaticamente
+- `credenciales.json` presente en `/opt/trazabilidad/credenciales.json`
+- acceso remoto desde la red local por `http://192.168.0.100:3001`
+- despliegue iterativo desde equipo de trabajo con:
+  - `bash deploy/minipc/deploy-current.sh`
+- comprobacion remota con:
+  - `bash deploy/minipc/check-current.sh`
+
+Topics MQTT operativos:
+
+- `trazabilidad/iot/sala/clones`
+- `trazabilidad/iot/sala/madres`
+- `trazabilidad/iot/sala/vegetativo`
+- `trazabilidad/iot/sala/floracion`
+- `trazabilidad/iot/sala/almacen-cosecha`
+
+Comandos minimos de operacion:
+
+```bash
+systemctl status trazabilidad.service
+systemctl restart trazabilidad.service
+systemctl status mosquitto
+systemctl restart mosquitto
+curl http://127.0.0.1:3001/api/health
+curl http://127.0.0.1:3001/api/iot/health
+```

@@ -1,0 +1,17 @@
+[Unit]
+Description=Neuro-IA Trazabilidad
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/trazabilidad
+ExecStart=/usr/bin/npm run server
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+StandardOutput=append:/opt/trazabilidad/server.log
+StandardError=append:/opt/trazabilidad/server.log
+
+[Install]
+WantedBy=multi-user.target

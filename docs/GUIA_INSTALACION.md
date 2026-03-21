@@ -88,6 +88,28 @@ URL:
 
 - `http://localhost:3001`
 
+## 7.1 Arranque en Mini PC
+
+En despliegue estable sobre `Mini PC + Proxmox`, la ejecucion recomendada es mediante `systemd`.
+
+Servicios esperados:
+
+- `trazabilidad.service`
+- `mosquitto.service`
+
+Comandos:
+
+```bash
+systemctl status trazabilidad.service
+systemctl restart trazabilidad.service
+systemctl status mosquitto
+systemctl restart mosquitto
+```
+
+URL esperada de acceso en red local:
+
+- `http://192.168.0.100:3001`
+
 ## 8. Primera comprobacion
 
 Verificar:
@@ -169,3 +191,12 @@ Perfil recomendado:
 
 - `Mini PC + Proxmox` como plataforma principal
 - `Raspberry Pi 5` como alternativa compacta soportada
+
+### 10.6 MQTT no conecta
+
+Revisar:
+
+- servicio `mosquitto.service`
+- puerto `1883`
+- topics configurados
+- `GET /api/iot/health` para confirmar `mqttConnected`

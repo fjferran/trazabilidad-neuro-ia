@@ -47,6 +47,10 @@ Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sinc
 - `docs/FAT_SAT_IOT_TRAZABILIDAD.md`
   - pruebas de aceptacion tecnica y operativa del sistema IoT
 
+- `deploy/minipc/README.md`
+  - flujo de migracion al Mini PC desde este equipo
+  - uso del script de sincronizacion por `SSH` + `rsync`
+
 ## Resumen funcional
 
 La app permite:
@@ -109,6 +113,34 @@ npm run build
 node server/server.js
 ```
 
+## Mini PC operativo
+
+El sistema ya puede operar desde un `Mini PC` en red con:
+
+- app desplegada en `/opt/trazabilidad`
+- servicio `systemd`:
+  - `trazabilidad.service`
+- broker MQTT local:
+  - `mosquitto.service`
+- URL de acceso esperada:
+  - `http://192.168.0.100:3001`
+
+Comandos utiles en el Mini PC:
+
+```bash
+systemctl status trazabilidad.service
+systemctl restart trazabilidad.service
+systemctl status mosquitto
+systemctl restart mosquitto
+```
+
+Comandos utiles desde este equipo:
+
+```bash
+bash deploy/minipc/deploy-current.sh
+bash deploy/minipc/check-current.sh
+```
+
 Prueba basica de ingesta IoT por API:
 
 ```bash
@@ -146,6 +178,14 @@ Rutas IoT principales:
 - `POST /api/agents/emergency/evaluate`
 - `GET /api/agents/emergency/active`
 - `GET /api/agents/emergency/history`
+
+Topics MQTT operativos:
+
+- `trazabilidad/iot/sala/clones`
+- `trazabilidad/iot/sala/madres`
+- `trazabilidad/iot/sala/vegetativo`
+- `trazabilidad/iot/sala/floracion`
+- `trazabilidad/iot/sala/almacen-cosecha`
 
 ## Ficheros clave
 

@@ -7,6 +7,7 @@ import cors from "cors";
 import os from "os";
 import {
   createAgentResponse,
+  connectMqttBroker,
   evaluateEmergency,
   exportIotPayload,
   getIotContextForNode,
@@ -1104,6 +1105,7 @@ const MirrorCache = {
 async function initGoogle() {
   try {
     await initIotSystem(path.join(__dirname, ".."));
+    connectMqttBroker();
     const localSnapshot = await loadLocalSnapshot();
     if (localSnapshot) {
       MirrorCache.data = localSnapshot.data;

@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import Database from "better-sqlite3";
+import mqtt from "mqtt";
 
 const ROOM_DEFS = [
   { id: "room_clones", name: "Sala de Clones", roomType: "cultivo" },
@@ -218,6 +219,22 @@ const POLICY_PROFILES = {
 };
 
 let db = null;
+let mqttClient = null;
+let mqttState = {
+  connected: false,
+  brokerUrl: null,
+  topics: [],
+  lastMessageAt: null,
+  lastError: null,
+};
+
+const MQTT_TOPIC_MAP = {
+  "trazabilidad/iot/sala/clones": "Sala de Clones",
+  "trazabilidad/iot/sala/madres": "Sala de Madres",
+  "trazabilidad/iot/sala/vegetativo": "Sala de Vegetativo",
+  "trazabilidad/iot/sala/floracion": "Sala de Floración",
+  "trazabilidad/iot/sala/almacen-cosecha": "Almacén Cosecha",
+};
 
 function makeMetricPolicy(unit, targetMin, targetMax, warningMin, warningMax, alarmMin, alarmMax) {
   return {
@@ -669,6 +686,68 @@ export async function initIotSystem(rootDir) {
   await ensureSchema();
   seedRoomsAndPolicies();
   return { dbPath };
+}
+
+export function connectMqttBroker(options = {}) {
+  const brokerUrl = options.brokerUrl || process.env.MQTT_URL || "mqtt://127.0.0.1:1883";
+  const topics = options.topics || Object.keys(MQTT_TOPIC_MAP);
+  if (mqttClient) {
+    return { brokerUrl: mqttState.brokerUrl, topics: mqttState.topics };
+  }
+
+  mqttState = {
+    ...mqttState,
+    brokerUrl,
+    topics,
+    lastError: null,
+  };
+
+  mqttClient = mqtt.connect(brokerUrl, {
+    connectTimeout: 5000,
+    reconnectPeriod: 5000,
+  });
+
+  mqttClient.on("connect", () => {
+    mqttState.connected = true;
+    mqttState.lastError = null;
+    mqttClient.subscribe(topics, (error) => {
+      if (error) {
+        mqttState.lastError = error.message;
+      }
+    });
+  });
+
+  mqttClient.on("reconnect", () => {
+    mqttState.connected = false;
+  });
+
+  mqttClient.on("close", () => {
+    mqttState.connected = false;
+  });
+
+  mqttClient.on("error", (error) => {
+    mqttState.lastError = error.message;
+    mqttState.connected = false;
+  });
+
+  mqttClient.on("message", (topic, message) => {
+    mqttState.lastMessageAt = nowIso();
+    const room = MQTT_TOPIC_MAP[topic];
+    if (!room) return;
+    try {
+      const payload = JSON.parse(String(message || "{}"));
+      ingestIotReading({
+        ...payload,
+        room,
+        topic,
+        source: "mqtt",
+      });
+    } catch (error) {
+      mqttState.lastError = `Payload MQTT inválido en ${topic}: ${error.message}`;
+    }
+  });
+
+  return { brokerUrl, topics };
 }
 
 function upsertDevice(roomId, deviceId, topic = null, metadata = null) {
@@ -1195,7 +1274,11 @@ export function getIotHealth() {
     .get()?.total;
   return {
     sqliteConnected: true,
-    mqttConnected: false,
+    mqttConnected: mqttState.connected,
+    mqttBrokerUrl: mqttState.brokerUrl,
+    mqttTopics: mqttState.topics,
+    mqttLastMessageAt: mqttState.lastMessageAt,
+    mqttLastError: mqttState.lastError,
     lastTelemetryAt: lastTelemetryAt || null,
     activeAlerts: activeAlerts || 0,
     staleRooms: staleRooms || 0,

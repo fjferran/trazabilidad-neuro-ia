@@ -35,11 +35,34 @@ const fadeUp = {
   exit: { opacity: 0, y: -20 },
 };
 
+const IOT_ROOMS = [
+  "Sala de Clones",
+  "Sala de Madres",
+  "Sala de Vegetativo",
+  "Sala de Floración",
+  "Almacén Cosecha",
+];
+
 const getSyncBadgeClass = (status) => {
   if (status === "pending_sync") return "bg-amber-50 text-amber-700";
   if (status === "conflict") return "bg-orange-50 text-orange-700";
   if (status === "sync_error") return "bg-red-50 text-red-700";
   return "bg-emerald-50 text-emerald-700";
+};
+
+const getIotBadgeClass = (status) => {
+  if (status === "ALARM" || status === "OFFLINE")
+    return "bg-red-50 text-red-700 border-red-200";
+  if (status === "WARNING" || status === "STALE")
+    return "bg-amber-50 text-amber-700 border-amber-200";
+  return "bg-emerald-50 text-emerald-700 border-emerald-200";
+};
+
+const formatMetricValue = (value, unit = "") => {
+  if (value === null || value === undefined || value === "") return "N/D";
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return String(value);
+  return `${numeric.toFixed(numeric >= 10 ? 1 : 2)}${unit ? ` ${unit}` : ""}`;
 };
 
 const auditActionLabels = {
@@ -193,6 +216,90 @@ function MetricCard({ title, value, icon: Icon, accent, delay = 0 }) {
       </div>
       <p className="label-text">{title}</p>
       <h3 className="stat-number">{value}</h3>
+    </motion.div>
+  );
+}
+
+function IotRoomCard({ room, delay = 0 }) {
+  const currentTemp = room?.metrics?.ambient?.t;
+  const currentHum = room?.metrics?.ambient?.h;
+  const subtitle =
+    room?.room === "Almacén Cosecha"
+      ? `T ${formatMetricValue(currentTemp, "C")} · H ${formatMetricValue(currentHum, "%")}`
+      : `T ${formatMetricValue(currentTemp, "C")} · H ${formatMetricValue(currentHum, "%")} · VPD ${formatMetricValue(room?.metrics?.ambient?.vpd, "kPa")}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-black text-slate-900">{room?.room}</p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">
+            {subtitle}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "px-3 py-1 rounded-xl border text-[10px] font-black uppercase tracking-widest",
+            getIotBadgeClass(room?.classification?.status),
+          )}
+        >
+          {room?.classification?.status || "N/D"}
+        </span>
+      </div>
+      <p className="text-sm font-bold text-slate-700 leading-relaxed">
+        {room?.classification?.reason || "Sin datos recientes para esta sala."}
+      </p>
+      <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
+        <span>Frescura: {room?.dataQuality?.freshnessSeconds ?? "N/D"} s</span>
+        <span>{room?.lastUpdatedAt ? new Date(room.lastUpdatedAt).toLocaleString("es-ES") : "Sin actualización"}</span>
+      </div>
+    </motion.div>
+  );
+}
+
+function IotAlertPanel({ alerts = [] }) {
+  return (
+    <motion.div {...fadeUp} transition={{ delay: 0.15 }} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-3">
+          <AlertTriangle size={20} className="text-red-500" /> Alertas IoT activas
+        </h3>
+        <span className="pill bg-slate-100 text-slate-600">{alerts.length}</span>
+      </div>
+      <div className="space-y-4">
+        {alerts.length === 0 ? (
+          <p className="text-sm font-semibold text-slate-500">
+            No hay alertas activas en este momento.
+          </p>
+        ) : (
+          alerts.map((alert) => (
+            <div key={alert.id || alert.alarmCode} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-black text-slate-900">{alert.room}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {alert.alarmCode}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "px-3 py-1 rounded-xl border text-[10px] font-black uppercase tracking-widest",
+                    getIotBadgeClass(alert.severity === "high" ? "ALARM" : "WARNING"),
+                  )}
+                >
+                  {alert.severity}
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-slate-700">{alert.reason}</p>
+            </div>
+          ))
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -594,6 +701,8 @@ function Dashboard({
   options,
   apiStatus,
   mirrorStatus,
+  iotRooms,
+  iotAlerts,
   onSync,
   onRetry,
   onDiscard,
@@ -645,6 +754,14 @@ function Dashboard({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActivityFeed activity={options.activity} />
         <MiniChart chartData={options.chartData} />
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {iotRooms.map((room, index) => (
+            <IotRoomCard key={room.room} room={room} delay={index * 0.05} />
+          ))}
+        </div>
+        <IotAlertPanel alerts={iotAlerts} />
       </div>
       <SyncPanel
         apiStatus={apiStatus}
@@ -1515,6 +1632,75 @@ function SearchView({ defaultQuery = "", currentRole = "operario" }) {
                       </p>
                       <p className="text-sm font-black text-slate-900">
                         {result.node.rowNumber}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {result.iot && (
+                  <div className="rounded-3xl border border-slate-200 bg-white p-6 space-y-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                          Contexto IoT de sala
+                        </p>
+                        <h4 className="text-lg font-black text-slate-900">
+                          {result.iot.room}
+                        </h4>
+                      </div>
+                      <span
+                        className={cn(
+                          "px-3 py-1 rounded-xl border text-[10px] font-black uppercase tracking-widest",
+                          getIotBadgeClass(result.iot.status),
+                        )}
+                      >
+                        {result.iot.status}
+                      </span>
+                    </div>
+
+                    {result.iot.activeAlerts?.length > 0 && (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-red-700">
+                          Alerta activa de sala
+                        </p>
+                        <p className="text-sm font-bold text-red-800">
+                          {result.iot.activeAlerts[0].alarmCode}
+                        </p>
+                        <p className="text-sm font-semibold text-red-700">
+                          {result.iot.activeAlerts[0].reason || result.iot.summary}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">T</p>
+                        <p className="text-sm font-black text-slate-900">{formatMetricValue(result.iot.latest?.ambient?.t, "C")}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">H</p>
+                        <p className="text-sm font-black text-slate-900">{formatMetricValue(result.iot.latest?.ambient?.h, "%")}</p>
+                      </div>
+                      {result.iot.room !== "Almacén Cosecha" && (
+                        <>
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">VPD</p>
+                            <p className="text-sm font-black text-slate-900">{formatMetricValue(result.iot.latest?.ambient?.vpd, "kPa")}</p>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">DLI</p>
+                            <p className="text-sm font-black text-slate-900">{formatMetricValue(result.iot.latest?.ambient?.dli, "mol/m2/d")}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                        Resumen operativo
+                      </p>
+                      <p className="text-sm font-bold text-slate-800">
+                        {result.iot.summary || "Sin resumen operativo disponible para esta sala."}
                       </p>
                     </div>
                   </div>
@@ -2815,6 +3001,8 @@ export default function App() {
   );
   const [apiStatus, setApiStatus] = useState(null);
   const [mirrorStatus, setMirrorStatus] = useState(null);
+  const [iotRoomStatus, setIotRoomStatus] = useState([]);
+  const [iotAlerts, setIotAlerts] = useState([]);
   const [syncingMirror, setSyncingMirror] = useState(false);
   const [restoringBackup, setRestoringBackup] = useState(false);
   const [urlSearchTerm, setUrlSearchTerm] = useState(null);
@@ -2829,6 +3017,7 @@ export default function App() {
     loadOptions();
     checkHealth();
     loadMirrorStatus();
+    loadIotOverview();
 
     // Verificar si hay un ID en la URL para abrir el buscador directamente (Opción A de QR)
     if (typeof window !== "undefined") {
@@ -2879,11 +3068,44 @@ export default function App() {
     }
   };
 
+  const loadIotOverview = async () => {
+    try {
+      const [rooms, alerts] = await Promise.all([
+        Promise.all(
+          IOT_ROOMS.map(async (room) => {
+            try {
+              const response = await axios.get(
+                `/api/agents/iot/rooms/${encodeURIComponent(room)}/status`,
+              );
+              return response.data;
+            } catch {
+              return {
+                room,
+                classification: {
+                  status: "OFFLINE",
+                  reason: "No hay datos IoT disponibles para esta sala.",
+                },
+                dataQuality: { freshnessSeconds: "N/D" },
+                metrics: { ambient: {}, substrate: {}, fertigation: {} },
+                lastUpdatedAt: null,
+              };
+            }
+          }),
+        ),
+        axios.get("/api/agents/emergency/active"),
+      ]);
+      setIotRoomStatus(rooms);
+      setIotAlerts(alerts.data?.items || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const syncMirrorNow = async () => {
     setSyncingMirror(true);
     try {
       await axios.post("/api/mirror/sync");
-      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions()]);
+      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions(), loadIotOverview()]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -2895,7 +3117,7 @@ export default function App() {
     setSyncingMirror(true);
     try {
       await axios.post(`/api/mirror/queue/${id}/resolve-local`);
-      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions()]);
+      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions(), loadIotOverview()]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -2907,7 +3129,7 @@ export default function App() {
     setSyncingMirror(true);
     try {
       await axios.post(`/api/mirror/queue/${id}/resolve-remote`);
-      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions()]);
+      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions(), loadIotOverview()]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -2919,7 +3141,7 @@ export default function App() {
     setSyncingMirror(true);
     try {
       await axios.post(`/api/mirror/queue/${id}/retry`);
-      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions()]);
+      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions(), loadIotOverview()]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -2931,7 +3153,7 @@ export default function App() {
     setSyncingMirror(true);
     try {
       await axios.post(`/api/mirror/queue/${id}/discard`);
-      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions()]);
+      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions(), loadIotOverview()]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -2945,7 +3167,7 @@ export default function App() {
       const text = await file.text();
       const payload = JSON.parse(text);
       await axios.post("/api/backup/restore", payload);
-      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions()]);
+      await Promise.all([checkHealth(), loadMirrorStatus(), loadOptions(), loadIotOverview()]);
     } catch (e) {
       console.error(e);
       alert(
@@ -3194,6 +3416,8 @@ export default function App() {
                   options={options}
                   apiStatus={apiStatus}
                   mirrorStatus={mirrorStatus}
+                  iotRooms={iotRoomStatus}
+                  iotAlerts={iotAlerts}
                   onSync={syncMirrorNow}
                   onRetry={retryQueueItem}
                   onDiscard={discardQueueItem}
