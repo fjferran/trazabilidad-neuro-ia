@@ -2,7 +2,7 @@
 
 ## 1. Objetivo
 
-Esta guia describe como usar la aplicacion en operacion diaria.
+Esta guia describe como usar la aplicacion en operacion diaria, incluyendo la capa de monitorizacion IoT por sala y la gestion operativa de alertas.
 
 ## 2. Flujo general
 
@@ -16,6 +16,13 @@ El sistema opera en 6 fases:
 6. Cosecha
 
 Adicionalmente, la app incluye una pestaña de `Labores` para checklist operativa diaria por turno.
+
+La operacion diaria puede incorporar tambien contexto IoT por sala para:
+
+- supervision ambiental
+- deteccion de alertas
+- revision de frescura de datos
+- interpretacion de incidencias desde el visor QR
 
 ## 2.1 Roles operativos
 
@@ -56,12 +63,14 @@ Entrar en la seccion `Pasaporte`.
 - indicar fecha
 - guardar
 - el sistema genera la ID automaticamente
+- la sala IoT asociada es `Sala de Madres`
 
 ### 3.2 Alta de clon
 
 - seleccionar madre origen
 - indicar fecha y cantidad
 - guardar
+- la sala IoT asociada es `Sala de Clones`
 
 ### 3.3 Alta de vegetativo
 
@@ -69,18 +78,46 @@ Entrar en la seccion `Pasaporte`.
 - la ubicacion se rellena por defecto como `Sala de Vegetativos`
 - indicar fecha y cantidad
 - guardar
+- la sala IoT resuelta debe mapearse a `Sala de Vegetativo`
 
 ### 3.4 Alta de floracion
 
 - seleccionar vegetativo origen
 - indicar ubicacion y fecha
 - guardar
+- la sala IoT asociada debe resolverse a `Sala de Floración`
 
 ### 3.5 Alta de cosecha
 
 - seleccionar floracion origen
 - indicar fecha, peso humedo, peso seco y ubicacion
 - guardar
+- si el lote entra en almacenamiento, la sala IoT asociada debe resolverse a `Almacén Cosecha`
+
+## 3.6 Monitorizacion IoT por sala
+
+La app trabaja con estas salas IoT cerradas:
+
+- `Sala de Clones`
+- `Sala de Madres`
+- `Sala de Vegetativo`
+- `Sala de Floración`
+- `Almacén Cosecha`
+
+Las salas de cultivo muestran:
+
+- `T`
+- `H`
+- `VPD`
+- `DLI`
+- `T sustrato`
+- `EC`
+- `pH`
+
+`Almacén Cosecha` solo muestra:
+
+- `T`
+- `H`
 
 ## 4. Etiquetado
 
@@ -118,6 +155,8 @@ La ficha visual muestra:
 - origen inmediato
 - ruta completa
 - historial del nodo
+- contexto IoT de la sala asociada si existe
+- alertas activas de la sala
 
 Si se entra desde QR en movil, la ficha se abre en modo standalone y oculta navegacion general, buscador manual, historial del nodo y controles de edicion.
 
@@ -135,6 +174,43 @@ Campos tipicos:
 - `Peso Húmedo (g)`
 - `Peso Seco (g)`
 - `Notas`
+
+Si cambia `Ubicación`, cambia tambien la sala IoT desde la que el nodo hereda contexto ambiental.
+
+## 6.1 Dashboard IoT y estados
+
+El dashboard puede mostrar el estado de cada sala con estas clasificaciones:
+
+- `OK`
+- `WARNING`
+- `ALARM`
+- `STALE`
+- `OFFLINE`
+
+Interpretacion rapida:
+
+- `OK`: dentro de objetivo y con telemetria fresca
+- `WARNING`: desviacion moderada o sostenida
+- `ALARM`: desviacion critica o combinacion de riesgo
+- `STALE`: datos antiguos
+- `OFFLINE`: sala sin telemetria operativa suficiente
+
+## 6.2 Alertas IoT
+
+Las alertas pueden reflejar:
+
+- temperatura alta o baja
+- humedad alta o baja
+- VPD fuera de rango
+- DLI fuera de rango
+- EC o pH fuera de rango
+- dato stale
+- broker o gateway offline
+
+Prioridades operativas:
+
+- `Sala de Floración`: prioridad alta
+- `Almacén Cosecha`: prioridad alta
 
 ## 7. Sincronizacion
 
@@ -183,3 +259,16 @@ Los eventos nuevos pueden mostrar:
 - nodo
 - hoja
 - fecha/hora
+
+## 10. Revisión diaria IoT recomendada
+
+Por turno se recomienda:
+
+1. abrir el dashboard
+2. comprobar ultima lectura por sala
+3. revisar `Sala de Floración`
+4. revisar `Almacén Cosecha`
+5. revisar alertas activas
+6. documentar incidencias tecnicas u operativas si procede
+
+Para procedimiento formal y registros GACP, seguir `SOP_IOT_001_Monitorizacion_IoT_GACP.md`.

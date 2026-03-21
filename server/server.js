@@ -5,6 +5,20 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import os from "os";
+import {
+  createAgentResponse,
+  evaluateEmergency,
+  exportIotPayload,
+  getIotContextForNode,
+  getIotHealth,
+  getRoomHistory,
+  getRoomStatus,
+  getRoomSummary,
+  ingestIotReading,
+  initIotSystem,
+  listEmergencyAlerts,
+  restoreIotPayload,
+} from "./iot.js";
 
 function getLocalIp() {
   const nets = os.networkInterfaces();
@@ -333,6 +347,7 @@ function createBackupPayload() {
       queue: MirrorCache.queue,
       assetManifest: MirrorCache.assetManifest,
     },
+    iot: exportIotPayload(),
   };
 }
 
@@ -344,7 +359,8 @@ function isValidBackupPayload(payload) {
     payload.mirror.ranges &&
     typeof payload.mirror.ranges === "object" &&
     Array.isArray(payload.mirror.queue || []) &&
-    typeof (payload.mirror.assetManifest || {}) === "object",
+    typeof (payload.mirror.assetManifest || {}) === "object" &&
+    typeof (payload.iot || {}) === "object",
   );
 }
 
@@ -378,6 +394,9 @@ async function restoreBackupPayload(payload) {
   applyQueueStateToIndex(MirrorCache.index, queue);
   MirrorCache.lastSync = new Date(lastSync).getTime();
   MirrorCache.source = source;
+  if (payload.iot) {
+    restoreIotPayload(payload.iot);
+  }
 
   await appendHistoryEvent({
     nodeId: "SYSTEM",
@@ -1084,6 +1103,7 @@ const MirrorCache = {
 
 async function initGoogle() {
   try {
+    await initIotSystem(path.join(__dirname, ".."));
     const localSnapshot = await loadLocalSnapshot();
     if (localSnapshot) {
       MirrorCache.data = localSnapshot.data;
@@ -1507,6 +1527,7 @@ app.get("/api/search/:qr", async (req, res) => {
         },
         data: node.data,
         linaje: linaje.length > 0 ? linaje : null,
+        iot: getIotContextForNode(node),
       });
     }
 
@@ -1517,6 +1538,94 @@ app.get("/api/search/:qr", async (req, res) => {
   } catch (error) {
     res.status(500).json({ status: "error", message: error.message });
   }
+});
+
+app.post("/api/iot/ingest", async (req, res) => {
+  try {
+    const result = ingestIotReading(req.body || {});
+    return res.json(createAgentResponse("S2_IOT", result));
+  } catch (error) {
+    return res.status(400).json({
+      status: "error",
+      generatedAt: new Date().toISOString(),
+      traceId: `iot-error-${Date.now()}`,
+      message: error.message,
+    });
+  }
+});
+
+app.get("/api/iot/health", (req, res) => {
+  return res.json({
+    status: "success",
+    generatedAt: new Date().toISOString(),
+    traceId: `iot-health-${Date.now()}`,
+    ...getIotHealth(),
+  });
+});
+
+app.get("/api/agents/iot/rooms/:room/status", (req, res) => {
+  const status = getRoomStatus(req.params.room, req.query.window || "24h");
+  if (!status) {
+    return res.status(404).json({ status: "error", message: "Sala no encontrada" });
+  }
+  return res.json(createAgentResponse("S2_IOT", status));
+});
+
+app.get("/api/agents/iot/rooms/:room/summary", (req, res) => {
+  const summary = getRoomSummary(req.params.room, req.query.window || "24h");
+  if (!summary) {
+    return res.status(404).json({ status: "error", message: "Sala no encontrada" });
+  }
+  return res.json(createAgentResponse("S2_IOT", summary));
+});
+
+app.get("/api/agents/iot/rooms/:room/history", (req, res) => {
+  const history = getRoomHistory(req.params.room, {
+    from: req.query.from,
+    to: req.query.to,
+    resolution: req.query.resolution,
+  });
+  if (!history) {
+    return res.status(404).json({ status: "error", message: "Sala no encontrada" });
+  }
+  return res.json({
+    status: "success",
+    generatedAt: new Date().toISOString(),
+    traceId: `iot-history-${Date.now()}`,
+    ...history,
+  });
+});
+
+app.post("/api/agents/emergency/evaluate", (req, res) => {
+  try {
+    const result = evaluateEmergency(req.body || {});
+    return res.json(createAgentResponse("S2_E", result));
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
+});
+
+app.get("/api/agents/emergency/active", (req, res) => {
+  const room = req.query.room || null;
+  return res.json({
+    status: "success",
+    generatedAt: new Date().toISOString(),
+    traceId: `emergency-active-${Date.now()}`,
+    items: listEmergencyAlerts({ roomName: room, activeOnly: true }),
+  });
+});
+
+app.get("/api/agents/emergency/history", (req, res) => {
+  const room = req.query.room || null;
+  const window = req.query.window || null;
+  return res.json({
+    status: "success",
+    generatedAt: new Date().toISOString(),
+    traceId: `emergency-history-${Date.now()}`,
+    room,
+    window,
+    items: listEmergencyAlerts({ roomName: room, window }),
+  });
 });
 
 app.get("/api/trace/:qr", async (req, res) => {
@@ -1533,6 +1642,7 @@ app.get("/api/trace/:qr", async (req, res) => {
       status: "success",
       current: node,
       lineage: buildTraceLineage(MirrorCache.index, node.id),
+      iot: getIotContextForNode(node),
     });
   } catch (error) {
     res.status(500).json({ status: "error", message: error.message });
@@ -1541,6 +1651,7 @@ app.get("/api/trace/:qr", async (req, res) => {
 
 // Health check
 app.get("/api/health", (req, res) => {
+  const iot = getIotHealth();
   res.json({
     status: "ok",
     sheets_connected: !!sheets,
@@ -1559,6 +1670,7 @@ app.get("/api/health", (req, res) => {
         (op) => op.status === "conflict",
       ).length,
     },
+    iot,
   });
 });
 

@@ -2,7 +2,7 @@
 
 ## 1. Objetivo
 
-Esta guia explica como exportar, guardar y restaurar el estado local del sistema.
+Esta guia explica como exportar, guardar y restaurar el estado local del sistema, incluyendo trazabilidad y capa IoT local.
 
 ## 2. Que incluye un backup
 
@@ -12,6 +12,13 @@ El backup JSON incluye:
 - cola de sincronizacion
 - manifest de assets
 - metadatos del espejo
+- bloque IoT con:
+  - salas
+  - dispositivos
+  - lecturas
+  - snapshots
+  - alertas
+  - politicas
 
 ## 3. Exportar backup
 
@@ -39,6 +46,8 @@ La app recarga:
 - opciones visuales
 - estado de sincronizacion
 - disponibilidad de usuarios/roles al volver a entrar en la app
+- base IoT local y snapshots por sala
+- alertas e historico IoT incluidos en el backup
 
 ## 5. Restaurar backup por API
 
@@ -54,6 +63,7 @@ Usar backup si:
 
 - cambia la maquina local
 - se corrompe el espejo local
+- se corrompe la base IoT local
 - se necesita restaurar operacion offline
 - se necesita replicar el entorno en otra instalacion
 
@@ -63,6 +73,7 @@ Usar backup si:
 - conservar varias copias fechadas
 - guardar una copia fuera de la maquina local
 - comprobar la restauracion en entorno controlado si es posible
+- probar periodicamente que `local_iot/iot.db` queda cubierto por el backup
 
 ## 8. Comprobaciones tras restaurar
 
@@ -73,3 +84,5 @@ Verificar:
 3. que la cola pendiente coincide con lo esperado
 4. que las imagenes locales siguen resolviendo
 5. que el visor QR puede abrir nodos
+6. que las salas IoT muestran snapshot correcto
+7. que las alertas IoT activas o historicas se restauran conforme al backup

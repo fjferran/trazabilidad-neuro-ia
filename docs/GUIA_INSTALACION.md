@@ -2,7 +2,7 @@
 
 ## 1. Objetivo
 
-Esta guia explica como instalar y arrancar la app de trazabilidad desde cero en una maquina nueva.
+Esta guia explica como instalar y arrancar la app de trazabilidad desde cero en una maquina nueva, incluyendo la capa IoT local con `SQLite` y despliegue edge sobre `Mini PC + Proxmox` o `Raspberry Pi 5`.
 
 ## 2. Requisitos previos
 
@@ -11,6 +11,15 @@ Esta guia explica como instalar y arrancar la app de trazabilidad desde cero en 
 - fichero `credenciales.json` de Google Cloud
 - acceso de la cuenta de servicio a la hoja de Google Sheets
 - impresora de etiquetas opcional para el modulo QR
+- espacio local para `local_mirror/` y `local_iot/`
+
+Para despliegue edge estable se recomienda:
+
+- `Mini PC` con `Proxmox`
+- `16 GB RAM` minimo
+- `NVMe 512 GB` minimo
+- red LAN cableada
+- `UPS`
 
 ## 3. Estructura minima esperada
 
@@ -18,6 +27,7 @@ El proyecto debe contener al menos:
 
 - `src/App.jsx`
 - `server/server.js`
+- `server/iot.js`
 - `package.json`
 - `vite.config.js`
 - `credenciales.json`
@@ -40,6 +50,8 @@ Debe compartirse con la cuenta de servicio usada por `credenciales.json`.
 ```bash
 npm install
 ```
+
+La instalacion crea tambien la dependencia nativa `better-sqlite3` usada por la base IoT local.
 
 ## 6. Arranque en desarrollo
 
@@ -86,6 +98,7 @@ Verificar:
 4. el sidebar muestra estado `Conectado`
 5. `Google Sheets activo`
 6. el espejo local se inicializa
+7. la base IoT local se crea sin error
 
 Usuarios locales iniciales esperados:
 
@@ -103,6 +116,18 @@ Tras el primer arranque deben aparecer:
 - `local_mirror/sync-queue.json`
 - `local_mirror/history.json`
 - `local_mirror/assets/`
+- `local_iot/iot.db`
+
+## 9.1 Estructura local IoT
+
+La base `SQLite` local almacena:
+
+- salas
+- dispositivos
+- lecturas historicas
+- snapshots por sala
+- alertas
+- politicas
 
 ## 10. Problemas comunes
 
@@ -127,3 +152,20 @@ Revisar:
 
 - que movil y ordenador esten en la misma red si se usa local
 - que el QR apunte a la URL correcta de la app
+
+### 10.4 Error creando la base IoT local
+
+Revisar:
+
+- permisos de escritura del proyecto
+- existencia de `local_iot/`
+- instalacion correcta de `better-sqlite3`
+
+### 10.5 Despliegue edge con Proxmox
+
+Para produccion estable, seguir `docs/RUNBOOK_DESPLIEGUE_PROXMOX_IOT_TRAZABILIDAD.md`.
+
+Perfil recomendado:
+
+- `Mini PC + Proxmox` como plataforma principal
+- `Raspberry Pi 5` como alternativa compacta soportada

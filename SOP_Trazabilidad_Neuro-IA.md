@@ -60,6 +60,7 @@ Aplica a:
 - respaldo y recuperacion del sistema local
 - control operativo por usuario y rol
 - checklist de labores por turno
+- integracion contextual con monitorizacion IoT por sala segun `SOP-IOT-001`
 
 ---
 
@@ -71,6 +72,9 @@ Aplica a:
 - impresora termica de etiquetas QR
 - dispositivos moviles para lectura QR
 - almacenamiento local suficiente para snapshot, historial y assets
+- infraestructura edge local soportada para despliegue estable o compacto:
+  - Mini PC con Proxmox como plataforma principal de produccion estable
+  - Raspberry Pi 5 como despliegue compacto soportado
 
 #### 5.2 Software
 
@@ -79,6 +83,8 @@ Aplica a:
 - navegador moderno
 - servicio local Node/Express para backend y sincronizacion
 - selector de usuario local con permisos por rol
+- broker MQTT local para telemetria IoT
+- base local SQLite para historico y estado IoT
 
 #### 5.3 Datos y activos
 
@@ -482,6 +488,7 @@ El backup debe incluir:
 - cola de sincronizacion
 - manifest de assets
 - metadatos del espejo
+- la capa IoT dispone de respaldo especifico segun `SOP-IOT-001`
 
 Se recomienda exportar backup:
 
@@ -565,6 +572,7 @@ El sistema se considera conforme si:
 - Normativa local aplicable al cultivo y trazabilidad
 - Documentacion interna de Neuro-IA Trazabilidad
 - Arquitectura tecnica del sistema y guias operativas asociadas
+- SOP-IOT-001: Monitorizacion IoT de Variables Ambientales y de Fertirriego
 
 ---
 

@@ -5,6 +5,7 @@ credenciales.json
 *.log
 dist/
 local_mirror/
+local_iot/
 legacy/
 scripts/
 plan.md
