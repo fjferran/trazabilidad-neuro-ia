@@ -1677,6 +1677,14 @@ app.post("/api/agents/chat", async (req, res) => {
     await MirrorCache.syncAll();
     const room = req.body?.context?.room || null;
     const qrId = req.body?.context?.qrId || null;
+    const geneticaNodes = MirrorCache.index?.byType?.genetica || [];
+    const geneticsContext = {
+      total: geneticaNodes.length,
+      varieties: geneticaNodes
+        .map((node) => node.data?.Variedad || node.id)
+        .filter(Boolean)
+        .slice(0, 30),
+    };
     const roomStatus = room ? getRoomStatus(room, "24h") : null;
     const activeAlerts = room ? listEmergencyAlerts({ roomName: room, activeOnly: true }) : [];
     let qrContext = null;
@@ -1695,7 +1703,13 @@ app.post("/api/agents/chat", async (req, res) => {
       }
     }
 
-    const result = await answerRagQuestion({ question, roomStatus, qrContext, activeAlerts });
+    const result = await answerRagQuestion({
+      question,
+      roomStatus,
+      qrContext,
+      activeAlerts,
+      geneticsContext,
+    });
     return res.json(createAgentResponse("S1_CHAT", result));
   } catch (error) {
     return res.status(500).json({ status: "error", message: error.message });

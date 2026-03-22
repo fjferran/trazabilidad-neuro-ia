@@ -267,10 +267,40 @@ function buildOperationalContext(roomStatus, qrContext, activeAlerts) {
   return lines.join("\n");
 }
 
-function fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, activeAlerts) {
+function buildGeneticsOperationalAnswer(question, geneticsContext) {
+  const normalized = normalizeText(question);
+  if (!geneticsContext?.total) return null;
+  const asksCount =
+    (normalized.includes("cuantas genet") || normalized.includes("cuántas genet") || normalized.includes("numero de genet") || normalized.includes("número de genet")) &&
+    (normalized.includes("hay") || normalized.includes("tenemos") || normalized.includes("registrad"));
+  if (!asksCount) return null;
+
+  const listed = geneticsContext.varieties.length
+    ? ` Las variedades visibles en trazabilidad son: ${geneticsContext.varieties.join(", ")}.`
+    : "";
+  return {
+    answer: `Actualmente hay ${geneticsContext.total} genéticas registradas en la trazabilidad.${listed}`,
+    recommendations: [],
+    sources: [
+      {
+        type: "traceability",
+        title: "Inventario de genéticas en trazabilidad",
+        section: "Sheet_Genetica",
+      },
+    ],
+    confidence: 0.97,
+    needsHumanReview: false,
+    scope: "traceability",
+  };
+}
+
+function fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, activeAlerts, geneticsContext) {
   const sources = [];
   const recommendations = [];
   const operationalContext = buildOperationalContext(roomStatus, qrContext, activeAlerts);
+
+  const geneticsAnswer = buildGeneticsOperationalAnswer(question, geneticsContext);
+  if (geneticsAnswer) return geneticsAnswer;
 
   if (roomStatus?.room) {
     sources.push({ type: "iot_status", title: `Estado IoT · ${roomStatus.room}`, section: roomStatus.classification?.status, room: roomStatus.room });
@@ -326,7 +356,7 @@ function fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, active
   };
 }
 
-export async function answerRagQuestion({ question, roomStatus, qrContext, activeAlerts }) {
+export async function answerRagQuestion({ question, roomStatus, qrContext, activeAlerts, geneticsContext }) {
   const listingAnswer = buildDocumentListingAnswer(question);
   if (listingAnswer) return listingAnswer;
 
@@ -334,8 +364,11 @@ export async function answerRagQuestion({ question, roomStatus, qrContext, activ
   const operationalContext = buildOperationalContext(roomStatus, qrContext, activeAlerts);
 
   if (!process.env.OPENAI_API_KEY) {
-    return fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, activeAlerts);
+    return fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, activeAlerts, geneticsContext);
   }
+
+  const geneticsAnswer = buildGeneticsOperationalAnswer(question, geneticsContext);
+  if (geneticsAnswer) return geneticsAnswer;
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const contextBlocks = [];
@@ -349,7 +382,7 @@ export async function answerRagQuestion({ question, roomStatus, qrContext, activ
   }
 
   if (!contextBlocks.length) {
-    return fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, activeAlerts);
+    return fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, activeAlerts, geneticsContext);
   }
 
   const response = await client.responses.create({
