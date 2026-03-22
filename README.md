@@ -40,6 +40,10 @@ Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sinc
   - SOP GACP de monitorizacion IoT por sala
   - rangos operativos, alarmas, escalado y mantenimiento
 
+- `SOP_S1_001_Agente_Asistente_RAG.md`
+  - SOP de uso del agente S1
+  - preguntas recomendadas y criterios de respuesta aceptable
+
 - `docs/RUNBOOK_DESPLIEGUE_PROXMOX_IOT_TRAZABILIDAD.md`
   - puesta en marcha en `Mini PC + Proxmox`
   - despliegue de `trazabilidad-app`, `mqtt-broker` y base IoT
