@@ -13,12 +13,46 @@ let actuatorState = {
   },
 };
 
+const ROOM_ALIASES = {
+  "sala de clones": "Sala de Clones",
+  clones: "Sala de Clones",
+  "sala de madres": "Sala de Madres",
+  madres: "Sala de Madres",
+  "sala de vegetativo": "Sala de Vegetativo",
+  vegetativo: "Sala de Vegetativo",
+  "sala de floracion": "Sala de Floración",
+  floracion: "Sala de Floración",
+  "almacen cosecha": "Almacén Cosecha",
+  almacen: "Almacén Cosecha",
+};
+
+const METRIC_ALIASES = {
+  temperatura: "ambient.t",
+  "temperatura sala": "ambient.t",
+  humedad: "ambient.h",
+  "humedad sala": "ambient.h",
+  vpd: "ambient.vpd",
+  dli: "ambient.dli",
+  "temperatura sustrato": "substrate.t",
+  "t sustrato": "substrate.t",
+  ec: "fertigation.ec",
+  ph: "fertigation.ph",
+};
+
 function nowIso() {
   return new Date().toISOString();
 }
 
 function assertInitialized() {
   if (!actuatorState.rootDir) throw new Error("Módulo de actuadores no inicializado");
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function sanitizeActuator(actuator) {
@@ -189,6 +223,86 @@ function buildShellyBaseUrl(actuator) {
   return `http://${actuator.ip}`;
 }
 
+function findActuatorByName(text) {
+  const normalized = normalizeText(text);
+  return (actuatorState.config.actuators || []).find((actuator) => normalized.includes(normalizeText(actuator.name)));
+}
+
+function findRoomByText(text) {
+  const normalized = normalizeText(text);
+  return Object.entries(ROOM_ALIASES).find(([alias]) => normalized.includes(alias))?.[1] || null;
+}
+
+function findMetricByText(text) {
+  const normalized = normalizeText(text);
+  return Object.entries(METRIC_ALIASES).find(([alias]) => normalized.includes(alias))?.[1] || null;
+}
+
+function findComparator(text) {
+  const normalized = normalizeText(text);
+  if (normalized.includes("por debajo de") || normalized.includes("menor que") || normalized.includes("<=")) return "<";
+  if (normalized.includes("por encima de") || normalized.includes("mayor que") || normalized.includes(">=")) return ">";
+  if (normalized.includes("igual a")) return "==";
+  if (normalized.includes("<")) return "<";
+  if (normalized.includes(">")) return ">";
+  return null;
+}
+
+function extractFirstNumberAfter(text, marker) {
+  const normalized = normalizeText(text);
+  const index = normalized.indexOf(marker);
+  if (index === -1) return null;
+  const slice = normalized.slice(index + marker.length);
+  const match = slice.match(/(\d+(?:[\.,]\d+)?)/);
+  return match ? Number(match[1].replace(",", ".")) : null;
+}
+
+export function parseAutomationInstruction(text) {
+  assertInitialized();
+  const actuator = findActuatorByName(text);
+  const room = findRoomByText(text) || actuator?.room || null;
+  const metric = findMetricByText(text);
+  const comparator = findComparator(text);
+  const threshold = extractFirstNumberAfter(text, comparator === ">" ? "de" : "de") || (() => {
+    const match = normalizeText(text).match(/(?:<|>|igual a|por debajo de|por encima de|menor que|mayor que)\s*(\d+(?:[\.,]\d+)?)/);
+    return match ? Number(match[1].replace(",", ".")) : null;
+  })();
+  const durationSeconds = (() => {
+    const match = normalizeText(text).match(/durante\s*(\d+)\s*seg/);
+    return match ? Number(match[1]) : null;
+  })();
+  const cooldownSeconds = (() => {
+    const match = normalizeText(text).match(/cooldown\s*(?:de)?\s*(\d+)\s*seg/);
+    return match ? Number(match[1]) : null;
+  })();
+  const desiredState = normalizeText(text).includes(" off") || normalizeText(text).includes(" en off") || normalizeText(text).includes("apagar") ? false : true;
+
+  const missing = [];
+  if (!actuator) missing.push("actuador");
+  if (!room) missing.push("sala");
+  if (!metric) missing.push("métrica");
+  if (!comparator) missing.push("comparador");
+  if (threshold === null || Number.isNaN(threshold)) missing.push("umbral");
+  if (durationSeconds === null) missing.push("duración");
+  if (cooldownSeconds === null) missing.push("cooldown");
+
+  return {
+    valid: missing.length === 0,
+    missing,
+    actuator: actuator ? sanitizeActuator(actuator) : null,
+    room,
+    automation: {
+      enabled: true,
+      metric,
+      comparator,
+      threshold,
+      desiredState,
+      durationSeconds,
+      cooldownSeconds,
+    },
+  };
+}
+
 async function fetchShellyStatus(actuator) {
   const baseUrl = buildShellyBaseUrl(actuator);
   const relay = Number(actuator.relay || 0);
@@ -292,4 +406,12 @@ export async function updateActuatorAutomation(id, automationPatch = {}) {
   };
   await saveActuatorConfig();
   return sanitizeActuator(actuator);
+}
+
+export async function applyAutomationInstruction(text) {
+  const parsed = parseAutomationInstruction(text);
+  if (!parsed.valid || !parsed.actuator) {
+    throw new Error(`No se pudo interpretar la instrucción. Faltan: ${parsed.missing.join(", ")}`);
+  }
+  return updateActuatorAutomation(parsed.actuator.id, parsed.automation);
 }

@@ -24,9 +24,11 @@ import {
 } from "./iot.js";
 import { answerRagQuestion, getRagHealth, initRag, refreshRagIndex } from "./rag.js";
 import {
+  applyAutomationInstruction,
   getActuatorsHealth,
   initActuators,
   listActuators,
+  parseAutomationInstruction,
   reloadActuators,
   setActuatorState,
   updateActuatorAutomation,
@@ -1878,6 +1880,52 @@ app.post("/api/actuators/:id/automation", async (req, res) => {
       status: "success",
       generatedAt: new Date().toISOString(),
       traceId: `actuator-automation-${Date.now()}`,
+      actuator,
+    });
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
+});
+
+app.post("/api/actuators/automation/parse", async (req, res) => {
+  try {
+    const instruction = String(req.body?.instruction || "").trim();
+    if (!instruction) {
+      return res.status(400).json({ status: "error", message: "Falta la instrucción de automatización." });
+    }
+    const parsed = parseAutomationInstruction(instruction);
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `actuator-parse-${Date.now()}`,
+      parsed,
+    });
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
+});
+
+app.post("/api/actuators/automation/apply", async (req, res) => {
+  try {
+    const instruction = String(req.body?.instruction || "").trim();
+    if (!instruction) {
+      return res.status(400).json({ status: "error", message: "Falta la instrucción de automatización." });
+    }
+    const actor = getActorFromReq(req);
+    const actuator = await applyAutomationInstruction(instruction);
+    await appendHistoryEvent({
+      action: "actuator_automation_updated",
+      nodeId: actuator.id,
+      actor,
+      details: {
+        source: "chat_automation",
+        automation: actuator.automation,
+      },
+    });
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `actuator-apply-${Date.now()}`,
       actuator,
     });
   } catch (error) {

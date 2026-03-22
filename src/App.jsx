@@ -1695,6 +1695,9 @@ const AUTOMATION_COMPARATORS = ["<", "<=", ">", ">=", "=="];
 
 function ActuatorsView({ actuators, loading, onRefresh, onSwitch, onUpdateAutomation }) {
   const [drafts, setDrafts] = useState({});
+  const [automationPrompt, setAutomationPrompt] = useState("");
+  const [automationParsed, setAutomationParsed] = useState(null);
+  const [automationLoading, setAutomationLoading] = useState(false);
 
   useEffect(() => {
     const nextDrafts = {};
@@ -1737,6 +1740,42 @@ function ActuatorsView({ actuators, loading, onRefresh, onSwitch, onUpdateAutoma
     });
   };
 
+  const parseAutomation = async () => {
+    if (!automationPrompt.trim()) return;
+    setAutomationLoading(true);
+    try {
+      const response = await axios.post("/api/actuators/automation/parse", {
+        instruction: automationPrompt,
+      });
+      setAutomationParsed(response.data?.parsed || null);
+    } catch (error) {
+      console.error(error);
+      setAutomationParsed({
+        valid: false,
+        missing: [error.response?.data?.message || error.message],
+      });
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
+  const applyAutomationFromPrompt = async () => {
+    if (!automationPrompt.trim()) return;
+    setAutomationLoading(true);
+    try {
+      await axios.post("/api/actuators/automation/apply", {
+        instruction: automationPrompt,
+      });
+      await onRefresh();
+      await parseAutomation();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || error.message);
+    } finally {
+      setAutomationLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <motion.div {...fadeUp} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-6">
@@ -1759,6 +1798,100 @@ function ActuatorsView({ actuators, loading, onRefresh, onSwitch, onUpdateAutoma
           >
             Actualizar estado
           </button>
+        </div>
+
+        <div className="rounded-3xl border border-blue-200 bg-blue-50 p-6 space-y-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">
+              Plantilla de automatización
+            </p>
+            <h3 className="text-lg font-black text-slate-900">
+              Cómo expresarla en un chat de automatización
+            </h3>
+          </div>
+          <div className="rounded-2xl border border-blue-200 bg-white p-4">
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
+              Plantilla recomendada
+            </p>
+            <p className="text-sm font-semibold text-slate-800 leading-relaxed">
+              Si en la <span className="font-black">&lt;sala&gt;</span> la métrica <span className="font-black">&lt;métrica&gt;</span> está <span className="font-black">&lt;comparador&gt; &lt;umbral&gt;</span> durante <span className="font-black">&lt;duración&gt;</span> segundos, poner el actuador <span className="font-black">&lt;nombre actuador&gt;</span> en <span className="font-black">&lt;ON/OFF&gt;</span> y aplicar un cooldown de <span className="font-black">&lt;cooldown&gt;</span> segundos.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-blue-200 bg-white p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Ejemplo 1
+              </p>
+              <p className="text-sm font-semibold text-slate-700 leading-relaxed">
+                Si en la <span className="font-black">Sala de Clones</span> la métrica <span className="font-black">humedad</span> está <span className="font-black">por debajo de 70</span> durante <span className="font-black">120</span> segundos, poner el actuador <span className="font-black">Bomba riego clones</span> en <span className="font-black">ON</span> y aplicar un cooldown de <span className="font-black">300</span> segundos.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-blue-200 bg-white p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Ejemplo 2
+              </p>
+              <p className="text-sm font-semibold text-slate-700 leading-relaxed">
+                Si en la <span className="font-black">Sala de Floración</span> la métrica <span className="font-black">DLI</span> está <span className="font-black">por debajo de 30</span> durante <span className="font-black">300</span> segundos, poner el actuador <span className="font-black">Luces floración</span> en <span className="font-black">ON</span> y aplicar un cooldown de <span className="font-black">600</span> segundos.
+              </p>
+            </div>
+          </div>
+          <p className="text-xs font-semibold text-blue-700">
+            Métricas soportadas actualmente: <span className="font-black">ambient.t</span>, <span className="font-black">ambient.h</span>, <span className="font-black">ambient.vpd</span>, <span className="font-black">ambient.dli</span>, <span className="font-black">substrate.t</span>, <span className="font-black">fertigation.ec</span>, <span className="font-black">fertigation.ph</span>.
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 space-y-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-2">
+              Chat de automatización
+            </p>
+            <h3 className="text-lg font-black text-slate-900">
+              Escribe la regla en lenguaje natural
+            </h3>
+          </div>
+          <textarea
+            value={automationPrompt}
+            onChange={(event) => setAutomationPrompt(event.target.value)}
+            rows={4}
+            placeholder="Si en la Sala de Clones la métrica humedad está por debajo de 70 durante 120 segundos, poner el actuador Bomba riego clones en ON y aplicar un cooldown de 300 segundos."
+            className="w-full rounded-3xl border border-emerald-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-400"
+          />
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={parseAutomation}
+              disabled={automationLoading || !automationPrompt.trim()}
+              className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black uppercase tracking-widest disabled:opacity-50"
+            >
+              Interpretar
+            </button>
+            <button
+              type="button"
+              onClick={applyAutomationFromPrompt}
+              disabled={automationLoading || !automationParsed?.valid}
+              className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase tracking-widest disabled:opacity-50"
+            >
+              Aplicar regla
+            </button>
+          </div>
+          {automationParsed && (
+            <div className={cn("rounded-2xl border p-4", automationParsed.valid ? "border-emerald-200 bg-white" : "border-red-200 bg-red-50")}>
+              {automationParsed.valid ? (
+                <div className="space-y-2 text-sm font-semibold text-slate-700">
+                  <p><span className="font-black">Actuador:</span> {automationParsed.actuator?.name}</p>
+                  <p><span className="font-black">Sala:</span> {automationParsed.room}</p>
+                  <p><span className="font-black">Métrica:</span> {automationParsed.automation?.metric}</p>
+                  <p><span className="font-black">Regla:</span> {automationParsed.automation?.comparator} {automationParsed.automation?.threshold}</p>
+                  <p><span className="font-black">Acción:</span> {automationParsed.automation?.desiredState ? "ON" : "OFF"}</p>
+                  <p><span className="font-black">Duración:</span> {automationParsed.automation?.durationSeconds}s · <span className="font-black">Cooldown:</span> {automationParsed.automation?.cooldownSeconds}s</p>
+                </div>
+              ) : (
+                <p className="text-sm font-semibold text-red-700">
+                  No se pudo interpretar la regla. Faltan o no se entendieron: {(automationParsed.missing || []).join(", ")}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {loading ? (
