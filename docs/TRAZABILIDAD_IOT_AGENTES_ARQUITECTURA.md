@@ -98,6 +98,20 @@ Incluye la base IoT local `SQLite`, separada del `local_mirror` de trazabilidad.
 
 Incluye thresholds, reglas de persistencia, combinaciones de riesgo y reglas de frescura, versionadas por sala.
 
+La fuente tecnica viva de esta capa queda externalizada en archivos versionados del backend:
+
+- `server/iot-policies.json`
+  - thresholds por sala
+  - reglas `warning` y `alarm`
+  - politicas de frescura
+  - reglas combinadas
+- `server/iot-anomalies.json`
+  - etiquetas humanas de anomalias
+  - explicaciones operativas
+  - referencias documentales a SOP
+
+Los SOP documentan y respaldan estas reglas, pero la logica en runtime se aplica desde dichos archivos JSON.
+
 ### 5.6 Capa de agentes
 
 Incluye tres servicios logicos:
@@ -192,6 +206,8 @@ Toda `Ubicacion` operativa debe resolverse hacia una de estas salas mediante una
 
 ## 8. Variables monitorizadas y reglas por sala
 
+La referencia operativa en runtime para esta seccion se mantiene en `server/iot-policies.json`.
+
 ### 8.1 Sala de Clones
 
 - `T`: 24-26 C objetivo
@@ -280,6 +296,8 @@ Tablas principales:
 
 Los snapshots existen para evitar recalculo constante en `Dashboard` y `SearchView`.
 
+Las tablas `iot_policy_profiles` conservan una representacion persistida de la politica activa, pero el origen de verdad del despliegue queda en `server/iot-policies.json` y se carga al inicializar el sistema.
+
 ## 11. Ingesta MQTT y normalizacion
 
 La telemetria llegara a traves de un broker MQTT local.
@@ -334,6 +352,13 @@ El motor evalua:
 - combinaciones de riesgo
 
 Este motor alimenta directamente a `S2-IoT` y `S2-E`.
+
+La capa de clasificacion utiliza como base:
+
+- `server/iot-policies.json` para rangos, frescura y combinaciones
+- `server/iot-anomalies.json` para lenguaje humano y referencias documentales
+
+Por diseno, cualquier cambio aprobado de politica debe reflejarse en estos archivos para que la app y el backend apliquen la nueva regla en runtime.
 
 ## 13. Diseno de agentes especializados
 
@@ -628,5 +653,7 @@ El sistema debe evitar:
 - `docs/TRAZABILIDAD_ARQUITECTURA.md`
 - `SOP_Trazabilidad_Neuro-IA.md`
 - `SOP_IOT_001_Monitorizacion_IoT_GACP.md`
+- `server/iot-policies.json`
+- `server/iot-anomalies.json`
 - runbook de despliegue e infraestructura
 - articulo de arquitectura ASA usado como referencia metodologica

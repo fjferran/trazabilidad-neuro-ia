@@ -1,0 +1,62 @@
+{
+  "labels": {
+    "CLONES_STRESS_DRY": "Estrés hídrico en clones",
+    "CLONES_FUNGAL_RISK": "Riesgo fúngico en clones",
+    "MADRES_HEAT_STRESS": "Estrés térmico en madres",
+    "VEG_STRESS_DRY": "Estrés hídrico en vegetativo",
+    "VEG_GROWTH_LIMIT_LIGHT": "Limitación de crecimiento por luz/temperatura",
+    "FLOR_BOTRYTIS_RISK": "Riesgo de botritis en floración",
+    "FLOR_STRESS_DRY": "Estrés hídrico en floración",
+    "ALMACEN_MOISTURE_RISK": "Riesgo de humedad en almacén",
+    "ALMACEN_HEAT_RISK": "Riesgo térmico en almacén"
+  },
+  "explanations": {
+    "CLONES_STRESS_DRY": "Se activa porque la humedad de la sala está por debajo del rango objetivo para clones y el VPD está demasiado alto, lo que aumenta la deshidratación del esqueje.",
+    "CLONES_FUNGAL_RISK": "Se activa porque coinciden temperatura y humedad altas en clones, una combinación que favorece proliferación fúngica y condensación.",
+    "MADRES_HEAT_STRESS": "Se activa porque la temperatura y la demanda evaporativa están por encima de lo aconsejado para madres, elevando el estrés fisiológico.",
+    "VEG_STRESS_DRY": "Se activa porque la humedad está baja y el VPD alto en vegetativo, lo que puede frenar crecimiento y aumentar el estrés hídrico.",
+    "VEG_GROWTH_LIMIT_LIGHT": "Se activa porque la luz diaria y la temperatura están por debajo de lo esperado para vegetativo, limitando el desarrollo.",
+    "FLOR_BOTRYTIS_RISK": "Se activa porque en floración coinciden humedad y temperatura elevadas, aumentando el riesgo de botritis y deterioro de calidad.",
+    "FLOR_STRESS_DRY": "Se activa porque la humedad es baja y el VPD alto en floración, favoreciendo estrés hídrico y pérdida de rendimiento.",
+    "ALMACEN_MOISTURE_RISK": "Se activa porque la humedad del almacén está por encima del rango recomendado, comprometiendo la conservación del material.",
+    "ALMACEN_HEAT_RISK": "Se activa porque la temperatura del almacén está por encima del rango recomendado y puede degradar el producto almacenado."
+  },
+  "references": {
+    "CLONES_STRESS_DRY": {
+      "document": "SOP-IOT-001",
+      "section": "8.1 Sala de Clones"
+    },
+    "CLONES_FUNGAL_RISK": {
+      "document": "SOP-IOT-001",
+      "section": "11.4 Incidencias criticas"
+    },
+    "MADRES_HEAT_STRESS": {
+      "document": "SOP-IOT-001",
+      "section": "8.2 Sala de Madres"
+    },
+    "VEG_STRESS_DRY": {
+      "document": "SOP-IOT-001",
+      "section": "8.3 Sala de Vegetativo"
+    },
+    "VEG_GROWTH_LIMIT_LIGHT": {
+      "document": "SOP-IOT-001",
+      "section": "8.3 Sala de Vegetativo"
+    },
+    "FLOR_BOTRYTIS_RISK": {
+      "document": "SOP-IOT-001",
+      "section": "8.4 Sala de Floracion"
+    },
+    "FLOR_STRESS_DRY": {
+      "document": "SOP-IOT-001",
+      "section": "8.4 Sala de Floracion"
+    },
+    "ALMACEN_MOISTURE_RISK": {
+      "document": "SOP-IOT-001",
+      "section": "8.5 Almacen Cosecha"
+    },
+    "ALMACEN_HEAT_RISK": {
+      "document": "SOP-IOT-001",
+      "section": "8.5 Almacen Cosecha"
+    }
+  }
+}

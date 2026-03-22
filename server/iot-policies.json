@@ -1,0 +1,128 @@
+{
+  "Sala de Clones": {
+    "room": "Sala de Clones",
+    "version": "1.0",
+    "appliesTo": [
+      "ambient.t",
+      "ambient.h",
+      "ambient.vpd",
+      "ambient.dli",
+      "substrate.t",
+      "fertigation.ec",
+      "fertigation.ph"
+    ],
+    "metrics": {
+      "ambient.t": { "unit": "C", "target": { "min": 24, "max": 26 }, "warning": { "min": 22, "max": 28 }, "alarm": { "min": 20, "max": 30 } },
+      "ambient.h": { "unit": "%", "target": { "min": 75, "max": 85 }, "warning": { "min": 70, "max": 90 }, "alarm": { "min": 65, "max": 92 } },
+      "ambient.vpd": { "unit": "kPa", "target": { "min": 0.4, "max": 0.8 }, "warning": { "min": 0.3, "max": 0.9 }, "alarm": { "min": 0.2, "max": 1.1 } },
+      "ambient.dli": { "unit": "mol/m2/d", "target": { "min": 6, "max": 12 }, "warning": { "min": 4, "max": 14 }, "alarm": { "min": 3, "max": 16 } },
+      "substrate.t": { "unit": "C", "target": { "min": 22, "max": 24 }, "warning": { "min": 20, "max": 25 }, "alarm": { "min": 18, "max": 27 } },
+      "fertigation.ec": { "unit": "mS/cm", "target": { "min": 0.4, "max": 0.8 }, "warning": { "min": 0.3, "max": 1.0 }, "alarm": { "min": 0.2, "max": 1.2 } },
+      "fertigation.ph": { "unit": "pH", "target": { "min": 5.8, "max": 6.2 }, "warning": { "min": 5.6, "max": 6.4 }, "alarm": { "min": 5.4, "max": 6.6 } }
+    },
+    "freshness": { "warningSeconds": 900, "alarmSeconds": 3600 },
+    "persistence": { "warningConsecutiveReadings": 3, "alarmConsecutiveReadings": 3, "recoveryConsecutiveReadings": 3 },
+    "combinationRules": [
+      { "code": "CLONES_STRESS_DRY", "if": ["ambient.h.low", "ambient.vpd.high"], "severity": "high" },
+      { "code": "CLONES_FUNGAL_RISK", "if": ["ambient.h.high", "ambient.t.high"], "severity": "medium" }
+    ]
+  },
+  "Sala de Madres": {
+    "room": "Sala de Madres",
+    "version": "1.0",
+    "appliesTo": [
+      "ambient.t",
+      "ambient.h",
+      "ambient.vpd",
+      "ambient.dli",
+      "substrate.t",
+      "fertigation.ec",
+      "fertigation.ph"
+    ],
+    "metrics": {
+      "ambient.t": { "unit": "C", "target": { "min": 24, "max": 28 }, "warning": { "min": 22, "max": 30 }, "alarm": { "min": 20, "max": 32 } },
+      "ambient.h": { "unit": "%", "target": { "min": 55, "max": 70 }, "warning": { "min": 50, "max": 75 }, "alarm": { "min": 45, "max": 80 } },
+      "ambient.vpd": { "unit": "kPa", "target": { "min": 0.8, "max": 1.2 }, "warning": { "min": 0.6, "max": 1.4 }, "alarm": { "min": 0.5, "max": 1.6 } },
+      "ambient.dli": { "unit": "mol/m2/d", "target": { "min": 20, "max": 30 }, "warning": { "min": 16, "max": 34 }, "alarm": { "min": 12, "max": 40 } },
+      "substrate.t": { "unit": "C", "target": { "min": 20, "max": 24 }, "warning": { "min": 18, "max": 25 }, "alarm": { "min": 16, "max": 27 } },
+      "fertigation.ec": { "unit": "mS/cm", "target": { "min": 1.2, "max": 2.0 }, "warning": { "min": 1.0, "max": 2.2 }, "alarm": { "min": 0.8, "max": 2.5 } },
+      "fertigation.ph": { "unit": "pH", "target": { "min": 5.8, "max": 6.3 }, "warning": { "min": 5.6, "max": 6.5 }, "alarm": { "min": 5.4, "max": 6.7 } }
+    },
+    "freshness": { "warningSeconds": 900, "alarmSeconds": 3600 },
+    "persistence": { "warningConsecutiveReadings": 3, "alarmConsecutiveReadings": 3, "recoveryConsecutiveReadings": 3 },
+    "combinationRules": [
+      { "code": "MADRES_HEAT_STRESS", "if": ["ambient.t.high", "ambient.vpd.high"], "severity": "medium" }
+    ]
+  },
+  "Sala de Vegetativo": {
+    "room": "Sala de Vegetativo",
+    "version": "1.0",
+    "appliesTo": [
+      "ambient.t",
+      "ambient.h",
+      "ambient.vpd",
+      "ambient.dli",
+      "substrate.t",
+      "fertigation.ec",
+      "fertigation.ph"
+    ],
+    "metrics": {
+      "ambient.t": { "unit": "C", "target": { "min": 24, "max": 28 }, "warning": { "min": 22, "max": 30 }, "alarm": { "min": 20, "max": 32 } },
+      "ambient.h": { "unit": "%", "target": { "min": 60, "max": 75 }, "warning": { "min": 55, "max": 80 }, "alarm": { "min": 50, "max": 85 } },
+      "ambient.vpd": { "unit": "kPa", "target": { "min": 0.8, "max": 1.2 }, "warning": { "min": 0.6, "max": 1.4 }, "alarm": { "min": 0.5, "max": 1.6 } },
+      "ambient.dli": { "unit": "mol/m2/d", "target": { "min": 20, "max": 35 }, "warning": { "min": 16, "max": 40 }, "alarm": { "min": 12, "max": 45 } },
+      "substrate.t": { "unit": "C", "target": { "min": 20, "max": 24 }, "warning": { "min": 18, "max": 25 }, "alarm": { "min": 16, "max": 27 } },
+      "fertigation.ec": { "unit": "mS/cm", "target": { "min": 1.2, "max": 1.8 }, "warning": { "min": 1.0, "max": 2.0 }, "alarm": { "min": 0.8, "max": 2.3 } },
+      "fertigation.ph": { "unit": "pH", "target": { "min": 5.8, "max": 6.2 }, "warning": { "min": 5.6, "max": 6.4 }, "alarm": { "min": 5.4, "max": 6.6 } }
+    },
+    "freshness": { "warningSeconds": 900, "alarmSeconds": 3600 },
+    "persistence": { "warningConsecutiveReadings": 3, "alarmConsecutiveReadings": 3, "recoveryConsecutiveReadings": 3 },
+    "combinationRules": [
+      { "code": "VEG_STRESS_DRY", "if": ["ambient.h.low", "ambient.vpd.high"], "severity": "medium" },
+      { "code": "VEG_GROWTH_LIMIT_LIGHT", "if": ["ambient.dli.low", "ambient.t.low"], "severity": "low" }
+    ]
+  },
+  "Sala de Floración": {
+    "room": "Sala de Floración",
+    "version": "1.0",
+    "appliesTo": [
+      "ambient.t",
+      "ambient.h",
+      "ambient.vpd",
+      "ambient.dli",
+      "substrate.t",
+      "fertigation.ec",
+      "fertigation.ph"
+    ],
+    "metrics": {
+      "ambient.t": { "unit": "C", "target": { "min": 22, "max": 26 }, "warning": { "min": 20, "max": 28 }, "alarm": { "min": 18, "max": 30 } },
+      "ambient.h": { "unit": "%", "target": { "min": 45, "max": 60 }, "warning": { "min": 40, "max": 65 }, "alarm": { "min": 35, "max": 70 } },
+      "ambient.vpd": { "unit": "kPa", "target": { "min": 1.0, "max": 1.4 }, "warning": { "min": 0.8, "max": 1.6 }, "alarm": { "min": 0.6, "max": 1.8 } },
+      "ambient.dli": { "unit": "mol/m2/d", "target": { "min": 30, "max": 45 }, "warning": { "min": 25, "max": 50 }, "alarm": { "min": 20, "max": 55 } },
+      "substrate.t": { "unit": "C", "target": { "min": 20, "max": 23 }, "warning": { "min": 18, "max": 24 }, "alarm": { "min": 16, "max": 26 } },
+      "fertigation.ec": { "unit": "mS/cm", "target": { "min": 1.4, "max": 2.2 }, "warning": { "min": 1.2, "max": 2.4 }, "alarm": { "min": 1.0, "max": 2.7 } },
+      "fertigation.ph": { "unit": "pH", "target": { "min": 5.8, "max": 6.3 }, "warning": { "min": 5.6, "max": 6.5 }, "alarm": { "min": 5.4, "max": 6.7 } }
+    },
+    "freshness": { "warningSeconds": 900, "alarmSeconds": 3600 },
+    "persistence": { "warningConsecutiveReadings": 3, "alarmConsecutiveReadings": 3, "recoveryConsecutiveReadings": 3 },
+    "combinationRules": [
+      { "code": "FLOR_BOTRYTIS_RISK", "if": ["ambient.h.high", "ambient.t.high"], "severity": "high" },
+      { "code": "FLOR_STRESS_DRY", "if": ["ambient.h.low", "ambient.vpd.high"], "severity": "medium" }
+    ]
+  },
+  "Almacén Cosecha": {
+    "room": "Almacén Cosecha",
+    "version": "1.0",
+    "appliesTo": ["ambient.t", "ambient.h"],
+    "metrics": {
+      "ambient.t": { "unit": "C", "target": { "min": 15, "max": 21 }, "warning": { "min": 13, "max": 23 }, "alarm": { "min": 10, "max": 25 } },
+      "ambient.h": { "unit": "%", "target": { "min": 45, "max": 55 }, "warning": { "min": 40, "max": 60 }, "alarm": { "min": 35, "max": 65 } }
+    },
+    "freshness": { "warningSeconds": 600, "alarmSeconds": 1800 },
+    "persistence": { "warningConsecutiveReadings": 3, "alarmConsecutiveReadings": 3, "recoveryConsecutiveReadings": 3 },
+    "combinationRules": [
+      { "code": "ALMACEN_MOISTURE_RISK", "if": ["ambient.h.high"], "severity": "high" },
+      { "code": "ALMACEN_HEAT_RISK", "if": ["ambient.t.high"], "severity": "high" }
+    ]
+  }
+}

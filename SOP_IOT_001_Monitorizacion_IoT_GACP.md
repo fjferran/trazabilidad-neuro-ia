@@ -101,6 +101,8 @@ No aplica en esta fase a:
 - `SOP_Trazabilidad_Neuro-IA`
 - documento de arquitectura IoT y agentes
 - runbook de despliegue e infraestructura
+- `server/iot-policies.json` como fuente tecnica versionada de thresholds y reglas
+- `server/iot-anomalies.json` como fuente tecnica versionada de explicaciones y referencias de alarma
 - manuales de sensores y sondas
 - registros de mantenimiento y calibracion
 - registros de incidencias y alertas
@@ -185,6 +187,8 @@ En `Almacen Cosecha` no aplican en esta fase:
 
 ### 8. Rangos operativos de referencia por sala
 
+Los rangos de esta seccion deben mantenerse alineados con la fuente tecnica viva del sistema en `server/iot-policies.json`.
+
 #### 8.1 Sala de Clones
 
 - `T`: 24-26 C
@@ -239,6 +243,12 @@ Se establecen dos bandas adicionales:
 
 Los umbrales exactos vigentes se gestionan en el perfil de politicas activo por sala y deben mantenerse alineados con el Anexo II.
 
+Todo cambio aprobado por Direccion de Cultivo y QA debe actualizar:
+
+- este SOP
+- `server/iot-policies.json`
+- si afecta al lenguaje de alarmas, tambien `server/iot-anomalies.json`
+
 ---
 
 ### 9. Arquitectura del sistema IoT
@@ -256,6 +266,8 @@ La arquitectura operativa se compone de:
 - interfaz web en dashboard, visor QR y asistente
 
 El sistema es `local-first`. La telemetria se considera gestionada localmente y no depende de Google Sheets para su operacion.
+
+La logica operativa en runtime no se lee directamente desde el SOP. El SOP actua como documento normativo y debe permanecer alineado con los archivos tecnicos versionados del sistema.
 
 ---
 
@@ -368,6 +380,8 @@ El sistema debe permitir:
 
 La base IoT debe mantenerse separada del espejo local de trazabilidad.
 
+Las politicas y explicaciones de alarma deben formar parte del control de cambios del sistema y mantenerse versionadas como evidencia tecnica de la configuracion operativa vigente.
+
 ---
 
 ### 13. Mantenimiento, verificacion y calibracion
@@ -451,6 +465,8 @@ El sistema se considera operativo cuando:
 
 - `SOP_Trazabilidad_Neuro-IA`
 - documento de arquitectura IoT y agentes
+- `server/iot-policies.json`
+- `server/iot-anomalies.json`
 - manuales del hardware instalado
 - runbook de despliegue de infraestructura
 - principios GACP aplicables a monitorizacion, registros y control ambiental

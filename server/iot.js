@@ -2,6 +2,8 @@ import fs from "fs/promises";
 import path from "path";
 import Database from "better-sqlite3";
 import mqtt from "mqtt";
+import anomalyCatalog from "./iot-anomalies.json" with { type: "json" };
+import policyCatalog from "./iot-policies.json" with { type: "json" };
 
 const ROOM_DEFS = [
   { id: "room_clones", name: "Sala de Clones", roomType: "cultivo" },
@@ -33,223 +35,11 @@ const METRIC_SPECS = {
   "fertigation.ph": { label: "pH", unit: "pH", field: "fertigation_ph" },
 };
 
-const ANOMALY_LABELS = {
-  CLONES_STRESS_DRY: "Estrés hídrico en clones",
-  CLONES_FUNGAL_RISK: "Riesgo fúngico en clones",
-  MADRES_HEAT_STRESS: "Estrés térmico en madres",
-  VEG_STRESS_DRY: "Estrés hídrico en vegetativo",
-  VEG_GROWTH_LIMIT_LIGHT: "Limitación de crecimiento por luz/temperatura",
-  FLOR_BOTRYTIS_RISK: "Riesgo de botritis en floración",
-  FLOR_STRESS_DRY: "Estrés hídrico en floración",
-  ALMACEN_MOISTURE_RISK: "Riesgo de humedad en almacén",
-  ALMACEN_HEAT_RISK: "Riesgo térmico en almacén",
-};
+const ANOMALY_LABELS = anomalyCatalog.labels || {};
+const ANOMALY_EXPLANATIONS = anomalyCatalog.explanations || {};
+const ANOMALY_REFERENCES = anomalyCatalog.references || {};
 
-const ANOMALY_EXPLANATIONS = {
-  CLONES_STRESS_DRY:
-    "Se activa porque la humedad de la sala está por debajo del rango objetivo para clones y el VPD está demasiado alto, lo que aumenta la deshidratación del esqueje.",
-  CLONES_FUNGAL_RISK:
-    "Se activa porque coinciden temperatura y humedad altas en clones, una combinación que favorece proliferación fúngica y condensación.",
-  MADRES_HEAT_STRESS:
-    "Se activa porque la temperatura y la demanda evaporativa están por encima de lo aconsejado para madres, elevando el estrés fisiológico.",
-  VEG_STRESS_DRY:
-    "Se activa porque la humedad está baja y el VPD alto en vegetativo, lo que puede frenar crecimiento y aumentar el estrés hídrico.",
-  VEG_GROWTH_LIMIT_LIGHT:
-    "Se activa porque la luz diaria y la temperatura están por debajo de lo esperado para vegetativo, limitando el desarrollo.",
-  FLOR_BOTRYTIS_RISK:
-    "Se activa porque en floración coinciden humedad y temperatura elevadas, aumentando el riesgo de botritis y deterioro de calidad.",
-  FLOR_STRESS_DRY:
-    "Se activa porque la humedad es baja y el VPD alto en floración, favoreciendo estrés hídrico y pérdida de rendimiento.",
-  ALMACEN_MOISTURE_RISK:
-    "Se activa porque la humedad del almacén está por encima del rango recomendado, comprometiendo la conservación del material.",
-  ALMACEN_HEAT_RISK:
-    "Se activa porque la temperatura del almacén está por encima del rango recomendado y puede degradar el producto almacenado.",
-};
-
-const POLICY_PROFILES = {
-  "Sala de Clones": {
-    room: "Sala de Clones",
-    version: "1.0",
-    appliesTo: Object.keys(METRIC_SPECS),
-    metrics: {
-      "ambient.t": makeMetricPolicy("C", 24, 26, 22, 28, 20, 30),
-      "ambient.h": makeMetricPolicy("%", 75, 85, 70, 90, 65, 92),
-      "ambient.vpd": makeMetricPolicy("kPa", 0.4, 0.8, 0.3, 0.9, 0.2, 1.1),
-      "ambient.dli": makeMetricPolicy(
-        "mol/m2/d",
-        6,
-        12,
-        4,
-        14,
-        3,
-        16,
-      ),
-      "substrate.t": makeMetricPolicy("C", 22, 24, 20, 25, 18, 27),
-      "fertigation.ec": makeMetricPolicy("mS/cm", 0.4, 0.8, 0.3, 1.0, 0.2, 1.2),
-      "fertigation.ph": makeMetricPolicy("pH", 5.8, 6.2, 5.6, 6.4, 5.4, 6.6),
-    },
-    freshness: { warningSeconds: 900, alarmSeconds: 3600 },
-    persistence: {
-      warningConsecutiveReadings: 3,
-      alarmConsecutiveReadings: 3,
-      recoveryConsecutiveReadings: 3,
-    },
-    combinationRules: [
-      {
-        code: "CLONES_STRESS_DRY",
-        if: ["ambient.h.low", "ambient.vpd.high"],
-        severity: "high",
-      },
-      {
-        code: "CLONES_FUNGAL_RISK",
-        if: ["ambient.h.high", "ambient.t.high"],
-        severity: "medium",
-      },
-    ],
-  },
-  "Sala de Madres": {
-    room: "Sala de Madres",
-    version: "1.0",
-    appliesTo: Object.keys(METRIC_SPECS),
-    metrics: {
-      "ambient.t": makeMetricPolicy("C", 24, 28, 22, 30, 20, 32),
-      "ambient.h": makeMetricPolicy("%", 55, 70, 50, 75, 45, 80),
-      "ambient.vpd": makeMetricPolicy("kPa", 0.8, 1.2, 0.6, 1.4, 0.5, 1.6),
-      "ambient.dli": makeMetricPolicy(
-        "mol/m2/d",
-        20,
-        30,
-        16,
-        34,
-        12,
-        40,
-      ),
-      "substrate.t": makeMetricPolicy("C", 20, 24, 18, 25, 16, 27),
-      "fertigation.ec": makeMetricPolicy("mS/cm", 1.2, 2.0, 1.0, 2.2, 0.8, 2.5),
-      "fertigation.ph": makeMetricPolicy("pH", 5.8, 6.3, 5.6, 6.5, 5.4, 6.7),
-    },
-    freshness: { warningSeconds: 900, alarmSeconds: 3600 },
-    persistence: {
-      warningConsecutiveReadings: 3,
-      alarmConsecutiveReadings: 3,
-      recoveryConsecutiveReadings: 3,
-    },
-    combinationRules: [
-      {
-        code: "MADRES_HEAT_STRESS",
-        if: ["ambient.t.high", "ambient.vpd.high"],
-        severity: "medium",
-      },
-    ],
-  },
-  "Sala de Vegetativo": {
-    room: "Sala de Vegetativo",
-    version: "1.0",
-    appliesTo: Object.keys(METRIC_SPECS),
-    metrics: {
-      "ambient.t": makeMetricPolicy("C", 24, 28, 22, 30, 20, 32),
-      "ambient.h": makeMetricPolicy("%", 60, 75, 55, 80, 50, 85),
-      "ambient.vpd": makeMetricPolicy("kPa", 0.8, 1.2, 0.6, 1.4, 0.5, 1.6),
-      "ambient.dli": makeMetricPolicy(
-        "mol/m2/d",
-        20,
-        35,
-        16,
-        40,
-        12,
-        45,
-      ),
-      "substrate.t": makeMetricPolicy("C", 20, 24, 18, 25, 16, 27),
-      "fertigation.ec": makeMetricPolicy("mS/cm", 1.2, 1.8, 1.0, 2.0, 0.8, 2.3),
-      "fertigation.ph": makeMetricPolicy("pH", 5.8, 6.2, 5.6, 6.4, 5.4, 6.6),
-    },
-    freshness: { warningSeconds: 900, alarmSeconds: 3600 },
-    persistence: {
-      warningConsecutiveReadings: 3,
-      alarmConsecutiveReadings: 3,
-      recoveryConsecutiveReadings: 3,
-    },
-    combinationRules: [
-      {
-        code: "VEG_STRESS_DRY",
-        if: ["ambient.h.low", "ambient.vpd.high"],
-        severity: "medium",
-      },
-      {
-        code: "VEG_GROWTH_LIMIT_LIGHT",
-        if: ["ambient.dli.low", "ambient.t.low"],
-        severity: "low",
-      },
-    ],
-  },
-  "Sala de Floración": {
-    room: "Sala de Floración",
-    version: "1.0",
-    appliesTo: Object.keys(METRIC_SPECS),
-    metrics: {
-      "ambient.t": makeMetricPolicy("C", 22, 26, 20, 28, 18, 30),
-      "ambient.h": makeMetricPolicy("%", 45, 60, 40, 65, 35, 70),
-      "ambient.vpd": makeMetricPolicy("kPa", 1.0, 1.4, 0.8, 1.6, 0.6, 1.8),
-      "ambient.dli": makeMetricPolicy(
-        "mol/m2/d",
-        30,
-        45,
-        25,
-        50,
-        20,
-        55,
-      ),
-      "substrate.t": makeMetricPolicy("C", 20, 23, 18, 24, 16, 26),
-      "fertigation.ec": makeMetricPolicy("mS/cm", 1.4, 2.2, 1.2, 2.4, 1.0, 2.7),
-      "fertigation.ph": makeMetricPolicy("pH", 5.8, 6.3, 5.6, 6.5, 5.4, 6.7),
-    },
-    freshness: { warningSeconds: 900, alarmSeconds: 3600 },
-    persistence: {
-      warningConsecutiveReadings: 3,
-      alarmConsecutiveReadings: 3,
-      recoveryConsecutiveReadings: 3,
-    },
-    combinationRules: [
-      {
-        code: "FLOR_BOTRYTIS_RISK",
-        if: ["ambient.h.high", "ambient.t.high"],
-        severity: "high",
-      },
-      {
-        code: "FLOR_STRESS_DRY",
-        if: ["ambient.h.low", "ambient.vpd.high"],
-        severity: "medium",
-      },
-    ],
-  },
-  "Almacén Cosecha": {
-    room: "Almacén Cosecha",
-    version: "1.0",
-    appliesTo: ["ambient.t", "ambient.h"],
-    metrics: {
-      "ambient.t": makeMetricPolicy("C", 15, 21, 13, 23, 10, 25),
-      "ambient.h": makeMetricPolicy("%", 45, 55, 40, 60, 35, 65),
-    },
-    freshness: { warningSeconds: 600, alarmSeconds: 1800 },
-    persistence: {
-      warningConsecutiveReadings: 3,
-      alarmConsecutiveReadings: 3,
-      recoveryConsecutiveReadings: 3,
-    },
-    combinationRules: [
-      {
-        code: "ALMACEN_MOISTURE_RISK",
-        if: ["ambient.h.high"],
-        severity: "high",
-      },
-      {
-        code: "ALMACEN_HEAT_RISK",
-        if: ["ambient.t.high"],
-        severity: "high",
-      },
-    ],
-  },
-};
+const POLICY_PROFILES = policyCatalog;
 
 let db = null;
 let mqttClient = null;
@@ -268,15 +58,6 @@ const MQTT_TOPIC_MAP = {
   "trazabilidad/iot/sala/floracion": "Sala de Floración",
   "trazabilidad/iot/sala/almacen-cosecha": "Almacén Cosecha",
 };
-
-function makeMetricPolicy(unit, targetMin, targetMax, warningMin, warningMax, alarmMin, alarmMax) {
-  return {
-    unit,
-    target: { min: targetMin, max: targetMax },
-    warning: { min: warningMin, max: warningMax },
-    alarm: { min: alarmMin, max: alarmMax },
-  };
-}
 
 function nowIso() {
   return new Date().toISOString();
@@ -401,6 +182,47 @@ function getAnomalyDisplayLabel(label) {
 
 function getAnomalyExplanation(label) {
   return ANOMALY_EXPLANATIONS[label] || null;
+}
+
+function getAnomalyReference(label) {
+  return ANOMALY_REFERENCES[label] || null;
+}
+
+function formatAnomalyNumber(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return String(value);
+  return numeric >= 10 ? numeric.toFixed(1) : numeric.toFixed(2);
+}
+
+function formatTargetRange(range, unit) {
+  if (!range) return null;
+  return `${formatAnomalyNumber(range.min)}-${formatAnomalyNumber(range.max)} ${unit}`;
+}
+
+function buildAnomalyObservedText(anomaly) {
+  if (!anomaly || anomaly.metric === "combination") return null;
+  if (anomaly.current === null || anomaly.current === undefined) return null;
+  const current = `${anomaly.label} ${formatAnomalyNumber(anomaly.current)} ${anomaly.unit}`;
+  const target = formatTargetRange(anomaly.target, anomaly.unit);
+  if (!target) return current;
+  return `${current} (objetivo ${target})`;
+}
+
+function buildDeviationExplanation(anomalies) {
+  const ruleExplanation = anomalies
+    .map((item) => getAnomalyExplanation(item.label))
+    .find(Boolean);
+  const observed = anomalies
+    .map((item) => buildAnomalyObservedText(item))
+    .filter(Boolean)
+    .slice(0, 4);
+
+  if (!ruleExplanation && !observed.length) return null;
+  if (ruleExplanation && !observed.length) return ruleExplanation;
+  if (!ruleExplanation && observed.length) {
+    return `Valores observados fuera de objetivo: ${observed.join(", ")}.`;
+  }
+  return `${ruleExplanation} Valores observados: ${observed.join(", ")}.`;
 }
 
 function buildSummary(roomName, status, anomalies, dataQuality) {
@@ -1264,8 +1086,9 @@ export function listEmergencyAlerts({ roomId = null, activeOnly = false, roomNam
       .map((item) => getAnomalyDisplayLabel(item.label))
       .filter(Boolean)
       .filter((value, index, array) => array.indexOf(value) === index);
-    const deviationExplanation = anomalies
-      .map((item) => getAnomalyExplanation(item.label))
+    const deviationExplanation = buildDeviationExplanation(anomalies);
+    const deviationReference = anomalies
+      .map((item) => getAnomalyReference(item.label))
       .find(Boolean);
     return {
       id: row.id,
@@ -1276,6 +1099,7 @@ export function listEmergencyAlerts({ roomId = null, activeOnly = false, roomNam
       reason: row.reason,
       deviationTypes,
       deviationExplanation,
+      deviationReference,
       startedAt: row.opened_at,
       endedAt: row.closed_at,
       operatorAckRequired: Boolean(row.operator_ack_required),
