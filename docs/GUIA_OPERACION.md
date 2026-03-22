@@ -24,6 +24,8 @@ La operacion diaria puede incorporar tambien contexto IoT por sala para:
 - revision de frescura de datos
 - interpretacion de incidencias desde el visor QR
 
+La app dispone de una pestaña especifica `Datos IoT` para operacion ambiental por sala.
+
 ## 2.1 Roles operativos
 
 La app distingue estos perfiles:
@@ -212,6 +214,51 @@ Prioridades operativas:
 - `Sala de Floración`: prioridad alta
 - `Almacén Cosecha`: prioridad alta
 
+## 6.3 Pestaña Datos IoT
+
+La pestaña `Datos IoT` permite:
+
+- ver estado actual de todas las salas
+- revisar alertas activas
+- reconocer alertas (`ack`)
+- cerrar alertas con observacion manual
+- consultar historico por sala en ventanas `24h`, `7d` y `30d`
+- exportar historico IoT por sala en `JSON` y `CSV`
+- exportar historico de alertas en `CSV`
+
+Campos operativos visibles:
+
+- desviacion detectada
+- explicacion humana
+- valores observados frente a objetivo
+- referencia SOP aplicable
+- actor que reconoce o cierra la alerta
+
+## 6.4 Historico IoT
+
+Dentro de `Datos IoT`:
+
+- seleccionar la sala
+- seleccionar ventana temporal
+- revisar mini graficas por metrica
+- comprobar si el valor esta `En objetivo`, `Bajo objetivo` o `Sobre objetivo`
+
+La banda visual verde representa el rango objetivo de la politica activa.
+
+## 6.5 Gestion manual de alertas
+
+Desde `Datos IoT`:
+
+- `Reconocer`: deja la alerta como revisada por un usuario
+- `Cerrar alerta`: solicita observacion de cierre y registra el actor
+
+El historico conserva:
+
+- inicio y fin
+- usuario que reconoce
+- usuario que cierra
+- observacion de cierre
+
 ## 7. Sincronizacion
 
 En el dashboard existe un panel de sincronizacion.
@@ -264,11 +311,12 @@ Los eventos nuevos pueden mostrar:
 
 Por turno se recomienda:
 
-1. abrir el dashboard
+1. abrir la pestaña `Datos IoT`
 2. comprobar ultima lectura por sala
 3. revisar `Sala de Floración`
 4. revisar `Almacén Cosecha`
 5. revisar alertas activas
-6. documentar incidencias tecnicas u operativas si procede
+6. revisar historico si la incidencia requiere contexto
+7. documentar incidencias tecnicas u operativas si procede
 
 Para procedimiento formal y registros GACP, seguir `SOP_IOT_001_Monitorizacion_IoT_GACP.md`.

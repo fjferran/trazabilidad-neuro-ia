@@ -71,6 +71,7 @@ La app permite:
 - consultar estado IoT desde `Dashboard`, `Visor QR` y endpoints dedicados
 - clasificar salas en `OK`, `WARNING`, `ALARM`, `STALE` u `OFFLINE`
 - operar con agentes `S2-IoT` y `S2-E` para analitica y emergencias
+- operar una pestaña dedicada `Datos IoT` con historico, exportaciones y gestion de alertas
 
 ## Capa IoT
 
@@ -122,6 +123,9 @@ El sistema ya puede operar desde un `Mini PC` en red con:
   - `trazabilidad.service`
 - broker MQTT local:
   - `mosquitto.service`
+- autenticacion MQTT actual:
+  - usuario `javier`
+  - password configurada en el Mini PC
 - URL de acceso esperada:
   - `http://192.168.0.100:3001`
 
@@ -178,6 +182,8 @@ Rutas IoT principales:
 - `POST /api/agents/emergency/evaluate`
 - `GET /api/agents/emergency/active`
 - `GET /api/agents/emergency/history`
+- `POST /api/agents/emergency/:id/ack`
+- `POST /api/agents/emergency/:id/resolve`
 
 Topics MQTT operativos:
 
@@ -186,6 +192,12 @@ Topics MQTT operativos:
 - `trazabilidad/iot/sala/vegetativo`
 - `trazabilidad/iot/sala/floracion`
 - `trazabilidad/iot/sala/almacen-cosecha`
+
+Autenticacion MQTT esperada:
+
+- broker: `192.168.0.100:1883`
+- usuario: `javier`
+- password: configurada en el sistema remoto, no versionada en el repo
 
 ## Ficheros clave
 

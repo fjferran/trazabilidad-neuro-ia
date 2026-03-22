@@ -13,6 +13,7 @@
 | Version | Fecha | Descripcion del Cambio | Autor |
 | --- | --- | --- | --- |
 | 1.0 | 21/03/2026 | Creacion inicial del SOP IoT con enfoque GACP, arquitectura local-first y agentes especializados. | Neuro-IA Team |
+| 1.1 | 22/03/2026 | Actualizacion de operativa real en Mini PC con broker MQTT autenticado, pestaña `Datos IoT`, historico, exportaciones y gestion manual de alertas. | Neuro-IA Team |
 
 ---
 
@@ -92,6 +93,7 @@ No aplica en esta fase a:
 - backend local Node/Express
 - base local SQLite
 - aplicacion Neuro-IA Trazabilidad
+- pestaña `Datos IoT` para operacion de sala, historico y alertas
 - dashboard web de supervision
 - motor de politicas por sala
 - agentes `S1`, `S2-IoT` y `S2-E`
@@ -124,6 +126,7 @@ No aplica en esta fase a:
 - **S2-IoT Agent**: agente de analisis de telemetria y clasificacion operativa por sala.
 - **S2-E Emergency Agent**: agente de evaluacion de emergencias e incidencias criticas.
 - **Ack**: reconocimiento humano de una alerta activa.
+- **Cierre de alerta**: resolucion manual o automatica de una alerta, con observacion cuando corresponda.
 - **Politica activa**: perfil vigente de thresholds, persistencia y reglas combinadas aprobado para una sala.
 
 ---
@@ -290,6 +293,8 @@ Para cada sala, se debe verificar:
 - estado actual `OK`, `WARNING`, `ALARM`, `STALE` u `OFFLINE`
 - metricas visibles principales
 - alertas activas y recomendaciones asociadas
+- historico de la ventana operativa seleccionada (`24h`, `7d` o `30d`)
+- comparacion visual contra rango objetivo si se utiliza la pestaña `Datos IoT`
 
 #### 10.3 Sala de Floracion
 
@@ -314,6 +319,7 @@ Antes del cierre del turno se debe:
 - revisar incidencias activas no cerradas
 - confirmar que no quedan salas sin datos recientes
 - dejar observaciones si hubo desviaciones significativas
+- reconocer o cerrar alertas resueltas indicando observacion de cierre cuando proceda
 
 ---
 
@@ -348,6 +354,12 @@ Ante una alerta o incidencia, se debe:
 - documentar la incidencia si persiste o es critica
 - escalar a Direccion de Cultivo y/o QA cuando proceda
 
+Cuando la alerta se gestiona desde la app:
+
+- el reconocimiento debe quedar asociado al usuario que ejecuta el `ack`
+- el cierre debe registrar observacion manual si la resolucion requiere evidencia humana
+- el historico debe conservar actor, fecha y nota de cierre
+
 #### 11.4 Incidencias criticas
 
 Se consideran especialmente criticas:
@@ -375,6 +387,7 @@ El sistema debe permitir:
 - historico por sala
 - snapshots de estado
 - historico de alertas
+- historico de reconocimiento y cierre manual de alertas
 - backup local
 - restauracion documentada
 
@@ -454,6 +467,7 @@ El sistema se considera operativo cuando:
 - historico de lecturas por sala
 - historico de snapshots
 - historico de alertas
+- historico de actores de reconocimiento y cierre
 - registro de incidencias
 - registro de mantenimiento y calibracion
 - registro de backup y recuperacion
@@ -554,6 +568,13 @@ Matriz resumida:
 
 Toda alerta `ALARM high` u `OFFLINE critical` requiere reconocimiento humano. El reconocimiento no implica cierre.
 
+Cuando la alerta se gestiona desde la app, el sistema debe registrar:
+
+- usuario que reconoce
+- usuario que cierra
+- observacion de cierre
+- fecha y hora de cada accion
+
 #### Anexo IV. Registro de mantenimiento, verificacion y calibracion
 
 Registro general de intervencion:
@@ -621,6 +642,11 @@ Registro de incidencias tecnicas:
 
 | Hora | Tipo | Sala | Descripcion | Impacto | Accion tecnica | Estado | Responsable |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+
+Registros exportables desde la app:
+
+- historico IoT por sala en `JSON` y `CSV`
+- historico de alertas en `CSV`
 
 ---
 

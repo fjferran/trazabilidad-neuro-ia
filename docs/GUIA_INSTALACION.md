@@ -97,6 +97,13 @@ Servicios esperados:
 - `trazabilidad.service`
 - `mosquitto.service`
 
+Broker MQTT autenticado esperado:
+
+- host: `192.168.0.100`
+- puerto: `1883`
+- usuario: `javier`
+- password: configurada en el Mini PC y no versionada en el repositorio
+
 Comandos:
 
 ```bash
@@ -200,3 +207,5 @@ Revisar:
 - puerto `1883`
 - topics configurados
 - `GET /api/iot/health` para confirmar `mqttConnected`
+- override systemd de `trazabilidad.service` con `MQTT_URL`
+- credenciales del broker MQTT en el Mini PC

@@ -18,6 +18,7 @@
 | 3.0     | 18/03/2026 | Reestructuracion de nomenclatura ID y motor de rastreo de linaje automatizado.                                         | Neuro-IA Team |
 | 4.0     | 19/03/2026 | Ampliacion a operativa offline-first con copia espejo local, cola de sincronizacion, auditoria, backup y recuperacion. | Neuro-IA Team |
 | 4.1     | 20/03/2026 | Integracion de usuarios locales por rol, auditoria con actor/rol y modulo de labores operativas por turno.             | Neuro-IA Team |
+| 4.2     | 22/03/2026 | Integracion operativa con pestaña `Datos IoT`, historico de sala, alertas manuales y referencia cruzada a SOP-IOT-001. | Neuro-IA Team |
 
 ---
 
@@ -61,6 +62,7 @@ Aplica a:
 - control operativo por usuario y rol
 - checklist de labores por turno
 - integracion contextual con monitorizacion IoT por sala segun `SOP-IOT-001`
+- consulta de historico IoT por sala y gestion contextual de alertas desde la app
 
 ---
 
@@ -103,6 +105,7 @@ Aplica a:
 - **Conflicto**: discrepancia entre dato local y dato remoto que requiere decision manual.
 - **Visor QR**: modulo que muestra la ficha visual de un nodo y su linaje.
 - **Labores**: checklist operativa por turno para tareas clave del cultivo.
+- **Datos IoT**: pestaña operativa para revisar estado ambiental por sala, historico y alertas.
 
 ---
 

@@ -19,6 +19,7 @@ El backup JSON incluye:
   - snapshots
   - alertas
   - politicas
+  - observaciones de cierre y actores de alerta
 
 ## 3. Exportar backup
 
@@ -48,6 +49,7 @@ La app recarga:
 - disponibilidad de usuarios/roles al volver a entrar en la app
 - base IoT local y snapshots por sala
 - alertas e historico IoT incluidos en el backup
+- historico de reconocimiento y cierre manual de alertas
 
 ## 5. Restaurar backup por API
 
