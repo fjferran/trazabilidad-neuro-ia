@@ -37,6 +37,7 @@ curl -X POST http://localhost:3001/api/agents/chat/reindex
 
 - `TEMPLATE_GENETICA_TERPENOS.md`
 - `TEMPLATE_GENETICA_RNCP.md`
+- `TEMPLATE_GENETICA_CANNABINOIDES.md`
 
 Recomendacion de uso:
 
