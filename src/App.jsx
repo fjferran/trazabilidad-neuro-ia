@@ -298,6 +298,16 @@ function IotAlertPanel({ alerts = [] }) {
                   {alert.severity}
                 </span>
               </div>
+              {alert.deviationTypes?.length > 0 && (
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  Desviación: {alert.deviationTypes.join(", ")}
+                </p>
+              )}
+              {alert.deviationExplanation && (
+                <p className="text-xs font-semibold text-slate-600 leading-relaxed">
+                  {alert.deviationExplanation}
+                </p>
+              )}
               <p className="text-sm font-semibold text-slate-700">{alert.reason}</p>
             </div>
           ))
@@ -1733,6 +1743,16 @@ function SearchView({ defaultQuery = "", currentRole = "operario" }) {
                         <p className="text-sm font-bold text-red-800">
                           {result.iot.activeAlerts[0].alarmCode}
                         </p>
+                        {result.iot.activeAlerts[0].deviationTypes?.length > 0 && (
+                          <p className="text-xs font-black uppercase tracking-widest text-red-700">
+                            Desviación: {result.iot.activeAlerts[0].deviationTypes.join(", ")}
+                          </p>
+                        )}
+                        {result.iot.activeAlerts[0].deviationExplanation && (
+                          <p className="text-sm font-semibold text-red-700 leading-relaxed">
+                            {result.iot.activeAlerts[0].deviationExplanation}
+                          </p>
+                        )}
                         <p className="text-sm font-semibold text-red-700">
                           {result.iot.activeAlerts[0].reason || result.iot.summary}
                         </p>

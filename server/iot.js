@@ -33,6 +33,39 @@ const METRIC_SPECS = {
   "fertigation.ph": { label: "pH", unit: "pH", field: "fertigation_ph" },
 };
 
+const ANOMALY_LABELS = {
+  CLONES_STRESS_DRY: "Estrés hídrico en clones",
+  CLONES_FUNGAL_RISK: "Riesgo fúngico en clones",
+  MADRES_HEAT_STRESS: "Estrés térmico en madres",
+  VEG_STRESS_DRY: "Estrés hídrico en vegetativo",
+  VEG_GROWTH_LIMIT_LIGHT: "Limitación de crecimiento por luz/temperatura",
+  FLOR_BOTRYTIS_RISK: "Riesgo de botritis en floración",
+  FLOR_STRESS_DRY: "Estrés hídrico en floración",
+  ALMACEN_MOISTURE_RISK: "Riesgo de humedad en almacén",
+  ALMACEN_HEAT_RISK: "Riesgo térmico en almacén",
+};
+
+const ANOMALY_EXPLANATIONS = {
+  CLONES_STRESS_DRY:
+    "Se activa porque la humedad de la sala está por debajo del rango objetivo para clones y el VPD está demasiado alto, lo que aumenta la deshidratación del esqueje.",
+  CLONES_FUNGAL_RISK:
+    "Se activa porque coinciden temperatura y humedad altas en clones, una combinación que favorece proliferación fúngica y condensación.",
+  MADRES_HEAT_STRESS:
+    "Se activa porque la temperatura y la demanda evaporativa están por encima de lo aconsejado para madres, elevando el estrés fisiológico.",
+  VEG_STRESS_DRY:
+    "Se activa porque la humedad está baja y el VPD alto en vegetativo, lo que puede frenar crecimiento y aumentar el estrés hídrico.",
+  VEG_GROWTH_LIMIT_LIGHT:
+    "Se activa porque la luz diaria y la temperatura están por debajo de lo esperado para vegetativo, limitando el desarrollo.",
+  FLOR_BOTRYTIS_RISK:
+    "Se activa porque en floración coinciden humedad y temperatura elevadas, aumentando el riesgo de botritis y deterioro de calidad.",
+  FLOR_STRESS_DRY:
+    "Se activa porque la humedad es baja y el VPD alto en floración, favoreciendo estrés hídrico y pérdida de rendimiento.",
+  ALMACEN_MOISTURE_RISK:
+    "Se activa porque la humedad del almacén está por encima del rango recomendado, comprometiendo la conservación del material.",
+  ALMACEN_HEAT_RISK:
+    "Se activa porque la temperatura del almacén está por encima del rango recomendado y puede degradar el producto almacenado.",
+};
+
 const POLICY_PROFILES = {
   "Sala de Clones": {
     room: "Sala de Clones",
@@ -362,6 +395,14 @@ function parseJson(value, fallback) {
   }
 }
 
+function getAnomalyDisplayLabel(label) {
+  return ANOMALY_LABELS[label] || label;
+}
+
+function getAnomalyExplanation(label) {
+  return ANOMALY_EXPLANATIONS[label] || null;
+}
+
 function buildSummary(roomName, status, anomalies, dataQuality) {
   if (status === "OFFLINE") {
     return `${roomName} sin telemetría reciente o sin conectividad operativa.`;
@@ -400,6 +441,45 @@ function buildRecommendedActions(roomName, status, anomalies, dataQuality) {
     actions.push("Revisar la sala y confirmar si la desviación es operativa o instrumental.");
   }
   return actions;
+}
+
+function deriveFreshnessStatus(roomName, lastObservedAt, currentStatus) {
+  const policy = getPolicyByRoomName(roomName);
+  if (!policy || !lastObservedAt) {
+    return {
+      freshnessSeconds: null,
+      stale: true,
+      status: currentStatus || "OFFLINE",
+      sensorHealth: "unknown",
+    };
+  }
+
+  const freshnessSeconds = Math.max(
+    0,
+    Math.round((Date.now() - new Date(lastObservedAt).getTime()) / 1000),
+  );
+  if (freshnessSeconds > policy.freshness.alarmSeconds) {
+    return {
+      freshnessSeconds,
+      stale: true,
+      status: "OFFLINE",
+      sensorHealth: "offline",
+    };
+  }
+  if (freshnessSeconds > policy.freshness.warningSeconds) {
+    return {
+      freshnessSeconds,
+      stale: true,
+      status: currentStatus === "ALARM" ? "ALARM" : "STALE",
+      sensorHealth: "degraded",
+    };
+  }
+  return {
+    freshnessSeconds,
+    stale: false,
+    status: currentStatus,
+    sensorHealth: "ok",
+  };
 }
 
 function evaluateReading(roomName, reading, previousRows = []) {
@@ -1036,12 +1116,19 @@ export function getRoomSnapshot(roomName) {
   if (!roomId) return null;
   const row = withDb().prepare(`SELECT * FROM iot_room_snapshots WHERE room_id = ?`).get(roomId);
   if (!row) return null;
+  const resolvedRoom = resolveRoomName(roomName);
+  const freshness = deriveFreshnessStatus(resolvedRoom, row.last_observed_at, row.status);
   return {
-    room: resolveRoomName(roomName),
+    room: resolvedRoom,
     roomId,
-    status: row.status,
+    status: freshness.status,
     severity: row.severity,
-    summary: row.summary,
+    summary:
+      freshness.status === "OFFLINE"
+        ? `${resolvedRoom} sin telemetría reciente o sin conectividad operativa.`
+        : freshness.status === "STALE"
+          ? `${resolvedRoom} con datos desactualizados; revisar gateway, broker o sensores.`
+          : row.summary,
     lastUpdatedAt: row.updated_at,
     metrics: {
       ambient: {
@@ -1057,10 +1144,10 @@ export function getRoomSnapshot(roomName) {
       },
     },
     dataQuality: {
-      freshnessSeconds: row.freshness_seconds,
-      sensorHealth: row.sensor_health,
+      freshnessSeconds: freshness.freshnessSeconds,
+      sensorHealth: freshness.sensorHealth,
       missingMetrics: parseJson(row.missing_metrics_json, []),
-      stale: row.status === "STALE" || row.status === "OFFLINE",
+      stale: freshness.stale,
     },
     anomalies: parseJson(row.anomalies_json, []),
     recommendedActions: parseJson(row.recommended_actions_json, []),
@@ -1170,19 +1257,32 @@ export function listEmergencyAlerts({ roomId = null, activeOnly = false, roomNam
   const rows = withDb()
     .prepare(`SELECT * FROM iot_alerts ${where} ORDER BY opened_at DESC`)
     .all(...params);
-  return rows.map((row) => ({
-    id: row.id,
-    alarmCode: row.alarm_code,
-    room: ROOM_DEFS.find((item) => item.id === row.room_id)?.name || row.room_id,
-    status: row.status,
-    severity: row.severity,
-    reason: row.reason,
-    startedAt: row.opened_at,
-    endedAt: row.closed_at,
-    operatorAckRequired: Boolean(row.operator_ack_required),
-    acked: Boolean(row.acked),
-    immediateActions: parseJson(row.immediate_actions_json, []),
-  }));
+  return rows.map((row) => {
+    const evidence = parseJson(row.evidence_json, {});
+    const anomalies = Array.isArray(evidence.anomalies) ? evidence.anomalies : [];
+    const deviationTypes = anomalies
+      .map((item) => getAnomalyDisplayLabel(item.label))
+      .filter(Boolean)
+      .filter((value, index, array) => array.indexOf(value) === index);
+    const deviationExplanation = anomalies
+      .map((item) => getAnomalyExplanation(item.label))
+      .find(Boolean);
+    return {
+      id: row.id,
+      alarmCode: row.alarm_code,
+      room: ROOM_DEFS.find((item) => item.id === row.room_id)?.name || row.room_id,
+      status: row.status,
+      severity: row.severity,
+      reason: row.reason,
+      deviationTypes,
+      deviationExplanation,
+      startedAt: row.opened_at,
+      endedAt: row.closed_at,
+      operatorAckRequired: Boolean(row.operator_ack_required),
+      acked: Boolean(row.acked),
+      immediateActions: parseJson(row.immediate_actions_json, []),
+    };
+  });
 }
 
 export function evaluateEmergency(payload) {
