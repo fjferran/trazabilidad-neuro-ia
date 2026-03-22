@@ -113,6 +113,16 @@ const getMetricRangeBadgeClass = (state) => {
   return "bg-slate-100 text-slate-600 border-slate-200";
 };
 
+const getMetricSampleClass = (state) => {
+  if (state === "low" || state === "high") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+  if (state === "ok") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+  return "border-slate-200 bg-slate-50 text-slate-600";
+};
+
 const ALERT_FILTER_OPTIONS = {
   rooms: ["Todas", ...IOT_ROOMS],
   severities: ["Todas", "high", "medium", "low"],
@@ -563,12 +573,32 @@ function IotHistoryPanel({ selectedRoom, onSelectRoom, selectedWindow, onSelectW
                 target={policy?.target}
               />
               <div className="space-y-2 max-h-44 overflow-auto pr-1">
-                {values.slice(-8).reverse().map((point) => (
-                  <div key={`${metricName}-${point.ts}`} className="flex items-center justify-between text-xs font-semibold text-slate-600">
-                    <span>{new Date(point.ts).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
-                    <span className="font-black text-slate-800">{formatMetricValue(point.value, metricVisualConfig[metricName]?.unit)}</span>
-                  </div>
-                ))}
+                {values.slice(-5).reverse().map((point) => {
+                  const sampleState = getMetricRangeState(point.value, policy);
+                  return (
+                    <div
+                      key={`${metricName}-${point.ts}`}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold",
+                        getMetricSampleClass(sampleState),
+                      )}
+                    >
+                      <span>{new Date(point.ts).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <div className="text-right">
+                        <span className="block font-black">{formatMetricValue(point.value, metricVisualConfig[metricName]?.unit)}</span>
+                        <span className="block text-[10px] uppercase tracking-widest opacity-80">
+                          {sampleState === "ok"
+                            ? "objetivo"
+                            : sampleState === "low"
+                              ? "bajo"
+                              : sampleState === "high"
+                                ? "alto"
+                                : "n/d"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
                   </>
                 );
@@ -581,7 +611,7 @@ function IotHistoryPanel({ selectedRoom, onSelectRoom, selectedWindow, onSelectW
   );
 }
 
-function IotAlertHistoryPanel({ items = [], loading = false, filters, onFiltersChange }) {
+function IotAlertHistoryPanel({ items = [], loading = false, filters, onFiltersChange, selectedWindow, onSelectWindow }) {
   const exportAlerts = () => {
     const headers = [
       "room",
@@ -641,6 +671,29 @@ function IotAlertHistoryPanel({ items = [], loading = false, filters, onFiltersC
 
       <AlertFilters value={filters} onChange={onFiltersChange} />
 
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+          Ventana histórico alertas
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {HISTORY_WINDOW_OPTIONS.map((window) => (
+            <button
+              key={window}
+              type="button"
+              onClick={() => onSelectWindow(window)}
+              className={cn(
+                "px-3 py-2 rounded-xl border text-xs font-black uppercase tracking-widest transition-colors",
+                selectedWindow === window
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100",
+              )}
+            >
+              {window}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
         <p className="text-sm font-semibold text-slate-500">Cargando histórico de alertas...</p>
       ) : items.length === 0 ? (
@@ -694,7 +747,10 @@ function IotMiniLineChart({ values, stroke = "#0f172a", target = null }) {
   const points = values.slice(-24);
   if (!points.length) return null;
 
-  const nums = points.map((point) => Number(point.value)).filter((value) => Number.isFinite(value));
+  const numericPoints = points
+    .map((point, index) => ({ ...point, index, numeric: Number(point.value) }))
+    .filter((point) => Number.isFinite(point.numeric));
+  const nums = numericPoints.map((point) => point.numeric);
   if (!nums.length) return null;
 
   const min = Math.min(...nums);
@@ -702,14 +758,24 @@ function IotMiniLineChart({ values, stroke = "#0f172a", target = null }) {
   const range = max - min || 1;
   const width = 320;
   const height = 90;
+  const toCoords = (numeric, index) => {
+      const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
+      const y = height - ((numeric - min) / range) * (height - 10) - 5;
+      return { x, y };
+    };
+
   const polyline = points
     .map((point, index) => {
-      const x = points.length === 1 ? width / 2 : (index / (points.length - 1)) * width;
       const numeric = Number(point.value);
-      const y = height - ((numeric - min) / range) * (height - 10) - 5;
+      const { x, y } = toCoords(numeric, index);
       return `${x},${y}`;
     })
     .join(" ");
+
+  const minPoint = numericPoints.find((point) => point.numeric === min);
+  const maxPoint = numericPoints.find((point) => point.numeric === max);
+  const minCoords = minPoint ? toCoords(minPoint.numeric, minPoint.index) : null;
+  const maxCoords = maxPoint ? toCoords(maxPoint.numeric, maxPoint.index) : null;
 
   const targetLine = (targetValue) => {
     if (!target || targetValue === null || targetValue === undefined) return null;
@@ -748,6 +814,22 @@ function IotMiniLineChart({ values, stroke = "#0f172a", target = null }) {
           strokeLinecap="round"
           points={polyline}
         />
+        {minCoords && (
+          <g>
+            <circle cx={minCoords.x} cy={minCoords.y} r="4.5" fill="#dc2626" />
+            <text x={minCoords.x} y={Math.max(12, minCoords.y - 8)} textAnchor="middle" fontSize="10" fontWeight="800" fill="#b91c1c">
+              MIN
+            </text>
+          </g>
+        )}
+        {maxCoords && (
+          <g>
+            <circle cx={maxCoords.x} cy={maxCoords.y} r="4.5" fill="#2563eb" />
+            <text x={maxCoords.x} y={Math.max(12, maxCoords.y - 8)} textAnchor="middle" fontSize="10" fontWeight="800" fill="#1d4ed8">
+              MAX
+            </text>
+          </g>
+        )}
       </svg>
       <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mt-1">
         <span>Mín {formatMetricValue(min)}</span>
@@ -1231,6 +1313,8 @@ function IotDataView({
   alertHistoryLoading,
   alertFilters,
   onAlertFiltersChange,
+  alertHistoryWindow,
+  onAlertHistoryWindowChange,
   selectedRoom,
   onSelectRoom,
   selectedWindow,
@@ -1361,6 +1445,8 @@ function IotDataView({
         loading={alertHistoryLoading}
         filters={alertFilters}
         onFiltersChange={onAlertFiltersChange}
+        selectedWindow={alertHistoryWindow}
+        onSelectWindow={onAlertHistoryWindowChange}
       />
     </div>
   );
@@ -3606,6 +3692,7 @@ export default function App() {
   const [iotAlerts, setIotAlerts] = useState([]);
   const [iotAlertHistory, setIotAlertHistory] = useState([]);
   const [iotAlertHistoryLoading, setIotAlertHistoryLoading] = useState(false);
+  const [iotAlertHistoryWindow, setIotAlertHistoryWindow] = useState("7d");
   const [iotAlertFilters, setIotAlertFilters] = useState({
     room: "Todas",
     severity: "Todas",
@@ -3631,7 +3718,7 @@ export default function App() {
     loadMirrorStatus();
     loadIotOverview();
     loadIotHistory(IOT_ROOMS[0], "24h");
-    loadIotAlertHistory();
+    loadIotAlertHistory("7d");
 
     // Verificar si hay un ID en la URL para abrir el buscador directamente (Opción A de QR)
     if (typeof window !== "undefined") {
@@ -3715,10 +3802,12 @@ export default function App() {
     }
   };
 
-  const loadIotAlertHistory = async () => {
+  const loadIotAlertHistory = async (window = iotAlertHistoryWindow) => {
     setIotAlertHistoryLoading(true);
     try {
-      const response = await axios.get("/api/agents/emergency/history?window=7d");
+      const response = await axios.get(
+        `/api/agents/emergency/history?window=${encodeURIComponent(window)}`,
+      );
       setIotAlertHistory(response.data?.items || []);
     } catch (error) {
       console.error(error);
@@ -3755,7 +3844,7 @@ export default function App() {
           },
         },
       );
-      await Promise.all([loadIotOverview(), loadIotHistory(selectedIotRoom, selectedIotWindow), loadIotAlertHistory()]);
+      await Promise.all([loadIotOverview(), loadIotHistory(selectedIotRoom, selectedIotWindow), loadIotAlertHistory(iotAlertHistoryWindow)]);
     } catch (error) {
       console.error(error);
     }
@@ -3780,7 +3869,7 @@ export default function App() {
           },
         },
       );
-      await Promise.all([loadIotOverview(), loadIotHistory(selectedIotRoom, selectedIotWindow), loadIotAlertHistory()]);
+      await Promise.all([loadIotOverview(), loadIotHistory(selectedIotRoom, selectedIotWindow), loadIotAlertHistory(iotAlertHistoryWindow)]);
     } catch (error) {
       console.error(error);
     }
@@ -4122,6 +4211,11 @@ export default function App() {
                   alertHistoryLoading={iotAlertHistoryLoading}
                   alertFilters={iotAlertFilters}
                   onAlertFiltersChange={setIotAlertFilters}
+                  alertHistoryWindow={iotAlertHistoryWindow}
+                  onAlertHistoryWindowChange={(window) => {
+                    setIotAlertHistoryWindow(window);
+                    loadIotAlertHistory(window);
+                  }}
                   selectedRoom={selectedIotRoom}
                   onSelectRoom={(room) => {
                     setSelectedIotRoom(room);
