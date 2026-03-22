@@ -57,6 +57,7 @@ const LOCAL_MIRROR_MANIFEST = path.join(
 );
 const LOCAL_QUEUE_FILE = path.join(LOCAL_MIRROR_DIR, "sync-queue.json");
 const LOCAL_HISTORY_FILE = path.join(LOCAL_MIRROR_DIR, "history.json");
+const S1_MANUAL_PATH = path.join(__dirname, "..", "docs", "GUIA_USO_S1_ASISTENTE.md");
 
 app.use("/local-mirror/assets", express.static(LOCAL_MIRROR_ASSETS_DIR));
 
@@ -1718,6 +1719,22 @@ app.post("/api/agents/chat/reindex", async (req, res) => {
       generatedAt: new Date().toISOString(),
       traceId: `chat-reindex-${Date.now()}`,
       ...result,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+});
+
+app.get("/api/agents/chat/manual", async (req, res) => {
+  try {
+    const content = await fs.readFile(S1_MANUAL_PATH, "utf8");
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `chat-manual-${Date.now()}`,
+      title: "Guía de Uso del Agente S1",
+      path: "docs/GUIA_USO_S1_ASISTENTE.md",
+      content,
     });
   } catch (error) {
     return res.status(500).json({ status: "error", message: error.message });

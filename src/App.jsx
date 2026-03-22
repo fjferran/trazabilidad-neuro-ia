@@ -1443,6 +1443,9 @@ function AssistantView({ currentUser, selectedRoom, onSelectRoom }) {
   const [qrId, setQrId] = useState("");
   const [answer, setAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [manual, setManual] = useState(null);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualLoading, setManualLoading] = useState(false);
 
   const quickQuestions = [
     "Resume el estado actual de la sala seleccionada.",
@@ -1485,6 +1488,23 @@ function AssistantView({ currentUser, selectedRoom, onSelectRoom }) {
     }
   };
 
+  const loadManual = async () => {
+    if (manual) {
+      setManualOpen((prev) => !prev);
+      return;
+    }
+    setManualLoading(true);
+    try {
+      const response = await axios.get("/api/agents/chat/manual");
+      setManual(response.data);
+      setManualOpen(true);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <motion.div {...fadeUp} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-6">
@@ -1507,8 +1527,39 @@ function AssistantView({ currentUser, selectedRoom, onSelectRoom }) {
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               Rol: {currentUser?.role || "N/D"}
             </div>
+            <button
+              type="button"
+              onClick={loadManual}
+              className="rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-3 text-left text-slate-700"
+            >
+              {manualLoading ? "Cargando manual..." : manualOpen ? "Ocultar manual S1" : "Ver manual S1"}
+            </button>
           </div>
         </div>
+
+        {manualOpen && manual && (
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                  Manual integrado
+                </p>
+                <h3 className="text-lg font-black text-slate-900">{manual.title}</h3>
+                <p className="text-xs font-semibold text-slate-500 mt-1">{manual.path}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManualOpen(false)}
+                className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest"
+              >
+                Cerrar
+              </button>
+            </div>
+            <pre className="whitespace-pre-wrap text-xs leading-relaxed font-medium text-slate-700 bg-white rounded-2xl border border-slate-200 p-4 max-h-80 overflow-auto">
+              {manual.content}
+            </pre>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <select

@@ -23,6 +23,10 @@ Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sinc
   - visor QR
   - sincronizacion y conflictos
 
+- `docs/GUIA_USO_S1_ASISTENTE.md`
+  - guia practica de uso del agente `S1`
+  - ejemplos de preguntas, limites y reindexado
+
 - `docs/GUIA_BACKUP_Y_RECUPERACION.md`
   - exportacion de backup
   - restauracion desde UI y API
