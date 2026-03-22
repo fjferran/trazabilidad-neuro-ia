@@ -51,6 +51,9 @@ Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sinc
   - flujo de migracion al Mini PC desde este equipo
   - uso del script de sincronizacion por `SSH` + `rsync`
 
+- `validated_info/README.md`
+  - carpeta para documentacion validada adicional usada por el sistema RAG del asistente
+
 ## Resumen funcional
 
 La app permite:
@@ -72,6 +75,7 @@ La app permite:
 - clasificar salas en `OK`, `WARNING`, `ALARM`, `STALE` u `OFFLINE`
 - operar con agentes `S2-IoT` y `S2-E` para analitica y emergencias
 - operar una pestaña dedicada `Datos IoT` con historico, exportaciones y gestion de alertas
+- operar un `S1 Chat-Agent` con recuperacion documental estricta sobre SOPs, manuales, PDFs y carpeta `validated_info/`
 
 ## Capa IoT
 
@@ -91,6 +95,21 @@ La capa IoT se apoya en:
   - `Raspberry Pi 5`
 
 El backend actual resuelve la `Ubicación` del nodo hacia una sala IoT y añade contexto ambiental al visor QR y al estado general del sistema.
+
+## S1 RAG
+
+El asistente `S1` ya funciona con una capa RAG local que indexa:
+
+- SOPs
+- manuales y documentacion de `docs/`
+- PDFs de geneticas y trazabilidad en `traza_argentina/`
+- carpeta de informacion validada adicional en `validated_info/`
+
+Comportamiento:
+
+- si existe `OPENAI_API_KEY`, usa un LLM con contexto recuperado
+- si no existe, usa un modo extractivo estricto basado en recuperacion documental
+- si no encuentra evidencia suficiente, responde que no puede contestar con seguridad
 
 ## Arranque rapido
 
@@ -184,6 +203,12 @@ Rutas IoT principales:
 - `GET /api/agents/emergency/history`
 - `POST /api/agents/emergency/:id/ack`
 - `POST /api/agents/emergency/:id/resolve`
+
+Rutas S1 / RAG:
+
+- `POST /api/agents/chat`
+- `GET /api/agents/chat/health`
+- `POST /api/agents/chat/reindex`
 
 Topics MQTT operativos:
 

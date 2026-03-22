@@ -1497,7 +1497,7 @@ function AssistantView({ currentUser, selectedRoom, onSelectRoom }) {
               Asistente operativo
             </h2>
             <p className="text-sm font-semibold text-slate-600 mt-3 max-w-3xl">
-              Consulta SOPs, estado IoT por sala, contexto de lote y recomendaciones operativas sin salir de la app.
+              Consulta SOPs, estado IoT por sala, contexto de lote y documentación validada sin salir de la app. Si no encuentra base suficiente, el asistente lo indica explícitamente.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-600 min-w-[280px]">

@@ -394,6 +394,27 @@ Restricciones:
 - no modifica datos
 - solo asesora
 
+Implementacion actual:
+
+- vista `Asistente` en la app web
+- endpoint `POST /api/agents/chat`
+- recuperacion documental local sobre SOPs, manuales, PDFs y carpeta `validated_info/`
+- modo estricto sin alucinacion cuando no hay evidencia suficiente
+
+Fuente documental indexada:
+
+- `README.md`
+- SOPs
+- `docs/`
+- `traza_argentina/`
+- `validated_info/`
+
+Operacion del RAG:
+
+- sin `OPENAI_API_KEY`: respuesta extractiva estricta con contexto recuperado
+- con `OPENAI_API_KEY`: respuesta con LLM condicionado por el contexto documental recuperado
+- en ambos casos, si no hay base suficiente, el agente debe declarar que no puede responder con seguridad
+
 ### 13.2 S2-IoT Agent
 
 Funcion:
@@ -458,6 +479,8 @@ Restriccion inicial:
 ### 14.1 S1
 
 - `POST /api/agents/chat`
+- `GET /api/agents/chat/health`
+- `POST /api/agents/chat/reindex`
 
 ### 14.2 S2-IoT
 

@@ -26,6 +26,8 @@ La operacion diaria puede incorporar tambien contexto IoT por sala para:
 
 La app dispone de una pestaña especifica `Datos IoT` para operacion ambiental por sala.
 
+La app dispone tambien de una pestaña `Asistente` para consultas documentales y operativas.
+
 ## 2.1 Roles operativos
 
 La app distingue estos perfiles:
@@ -258,6 +260,27 @@ El historico conserva:
 - usuario que reconoce
 - usuario que cierra
 - observacion de cierre
+
+## 6.6 Pestaña Asistente
+
+La pestaña `Asistente` permite:
+
+- preguntar por SOPs aplicables
+- preguntar por rangos operativos
+- pedir resumen de una sala
+- pedir contexto de un lote o QR concreto
+- consultar documentacion validada indexada
+
+Comportamiento esperado:
+
+- si encuentra evidencia en SOPs, manuales, PDFs o `validated_info/`, responde con fuentes
+- si no encuentra base suficiente, indica que no puede responder con seguridad
+
+La pestaña permite introducir:
+
+- sala
+- QR o lote opcional
+- pregunta libre o preguntas rápidas
 
 ## 7. Sincronizacion
 

@@ -53,6 +53,11 @@ npm install
 
 La instalacion crea tambien la dependencia nativa `better-sqlite3` usada por la base IoT local.
 
+Tambien instala dependencias del sistema RAG local del asistente:
+
+- `pdf-parse`
+- `openai`
+
 ## 6. Arranque en desarrollo
 
 Terminal 1:
@@ -158,6 +163,17 @@ La base `SQLite` local almacena:
 - alertas
 - politicas
 
+## 9.2 Informacion validada para S1
+
+La carpeta `validated_info/` puede contener documentacion adicional validada para el asistente `S1`.
+
+Formatos soportados:
+
+- `.md`
+- `.txt`
+- `.pdf`
+- `.json`
+
 ## 10. Problemas comunes
 
 ### 10.1 No conecta con Google Sheets
@@ -209,3 +225,16 @@ Revisar:
 - `GET /api/iot/health` para confirmar `mqttConnected`
 - override systemd de `trazabilidad.service` con `MQTT_URL`
 - credenciales del broker MQTT en el Mini PC
+
+### 10.7 El asistente no encuentra una respuesta
+
+Revisar:
+
+- que el documento exista en `docs/`, SOPs, `traza_argentina/` o `validated_info/`
+- que el backend haya reindexado el RAG
+
+Reindexado manual:
+
+```bash
+curl -X POST http://localhost:3001/api/agents/chat/reindex
+```

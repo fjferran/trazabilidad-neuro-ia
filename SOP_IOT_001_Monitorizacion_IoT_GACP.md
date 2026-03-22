@@ -94,6 +94,7 @@ No aplica en esta fase a:
 - base local SQLite
 - aplicacion Neuro-IA Trazabilidad
 - pestaña `Datos IoT` para operacion de sala, historico y alertas
+- pestaña `Asistente` para consulta documental contextual
 - dashboard web de supervision
 - motor de politicas por sala
 - agentes `S1`, `S2-IoT` y `S2-E`
@@ -123,6 +124,7 @@ No aplica en esta fase a:
 - **Incidencia critica**: condicion con riesgo elevado para producto, proceso o integridad del sistema.
 - **Dato stale**: dato demasiado antiguo para considerarse operativo.
 - **S1 Chat-Agent**: asistente conversacional contextual para SOPs, trazabilidad e interpretacion operativa.
+- **RAG**: recuperacion aumentada por generacion o extraccion, basada en documentacion validada indexada por el sistema.
 - **S2-IoT Agent**: agente de analisis de telemetria y clasificacion operativa por sala.
 - **S2-E Emergency Agent**: agente de evaluacion de emergencias e incidencias criticas.
 - **Ack**: reconocimiento humano de una alerta activa.
@@ -267,6 +269,8 @@ La arquitectura operativa se compone de:
 - motor de politicas
 - agentes `S1`, `S2-IoT` y `S2-E`
 - interfaz web en dashboard, visor QR y asistente
+
+El agente `S1` puede apoyarse en documentacion validada indexada localmente para responder sobre SOPs, geneticas y documentos tecnicos sin salir de la app.
 
 El sistema es `local-first`. La telemetria se considera gestionada localmente y no depende de Google Sheets para su operacion.
 
@@ -481,6 +485,7 @@ El sistema se considera operativo cuando:
 - documento de arquitectura IoT y agentes
 - `server/iot-policies.json`
 - `server/iot-anomalies.json`
+- `validated_info/`
 - manuales del hardware instalado
 - runbook de despliegue de infraestructura
 - principios GACP aplicables a monitorizacion, registros y control ambiental
