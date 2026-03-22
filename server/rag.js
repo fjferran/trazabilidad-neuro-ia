@@ -46,13 +46,21 @@ function splitIntoChunks(text, size = 1400, overlap = 180) {
 function scoreChunk(question, chunk) {
   const questionTokens = tokenize(question);
   const chunkTokens = new Set(tokenize(chunk.text));
+  const metadataTokens = new Set(
+    tokenize(`${chunk.metadata.title} ${chunk.metadata.path} ${(chunk.metadata.keywords || []).join(" ")}`),
+  );
   let score = 0;
   for (const token of questionTokens) {
     if (chunkTokens.has(token)) score += 1;
+    if (metadataTokens.has(token)) score += 3;
   }
   const normalizedQuestion = normalizeText(question);
   if (normalizeText(chunk.text).includes(normalizedQuestion.slice(0, 32))) {
     score += 3;
+  }
+  const titlePath = normalizeText(`${chunk.metadata.title} ${chunk.metadata.path}`);
+  if (normalizedQuestion.split(/\s+/).some((part) => part.length > 3 && titlePath.includes(part))) {
+    score += 4;
   }
   return score;
 }
@@ -85,10 +93,71 @@ async function scanFiles(dirPath, accumulator = []) {
 }
 
 function buildDocMetadata(rootDir, filePath) {
+  const baseName = path.basename(filePath);
+  const title = baseName;
+  const titleWithoutExt = title.replace(path.extname(title), "");
   return {
     path: path.relative(rootDir, filePath),
-    title: path.basename(filePath),
+    title,
     type: path.extname(filePath).toLowerCase().replace(".", "") || "text",
+    keywords: tokenize(titleWithoutExt.replace(/[_-]/g, " ")),
+  };
+}
+
+function extractCandidateTerms(question) {
+  const normalized = normalizeText(question);
+  const tokens = tokenize(normalized);
+  const candidates = new Set();
+  for (const doc of ragState.docs) {
+    const title = doc.title?.replace(path.extname(doc.title || ""), "") || "";
+    const geneticsLike = title.split(/[_-]/)[0]?.trim();
+    if (!geneticsLike) continue;
+    const norm = normalizeText(geneticsLike);
+    if (norm && normalized.includes(norm)) candidates.add(geneticsLike);
+  }
+  for (const token of tokens) {
+    for (const doc of ragState.docs) {
+      const haystack = normalizeText(`${doc.title} ${doc.path}`);
+      if (haystack.includes(token)) candidates.add(token);
+    }
+  }
+  return [...candidates];
+}
+
+function findMatchingDocuments(question) {
+  const normalized = normalizeText(question);
+  const candidateTerms = extractCandidateTerms(question);
+  const docs = ragState.docs.filter((doc) => {
+    const haystack = normalizeText(`${doc.title} ${doc.path}`);
+    if (candidateTerms.some((term) => haystack.includes(normalizeText(term)))) return true;
+    return tokenize(question).some((token) => haystack.includes(token));
+  });
+  return docs
+    .filter((doc) => doc.type !== "error")
+    .sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function buildDocumentListingAnswer(question) {
+  const matchingDocs = findMatchingDocuments(question);
+  if (!(normalizeText(question).includes("genet") || normalizeText(question).includes("document"))) {
+    return null;
+  }
+  if (!matchingDocs.length) return null;
+  const listed = matchingDocs.slice(0, 8).map((doc) => `- ${doc.path}`).join("\n");
+  return {
+    answer: `He encontrado documentación validada relacionada con tu consulta:\n${listed}`,
+    recommendations: [
+      "Si necesitas detalle de una genética concreta, indica también el nombre exacto y el tipo de documento que buscas.",
+    ],
+    sources: matchingDocs.slice(0, 5).map((doc) => ({
+      type: doc.type,
+      title: doc.title,
+      path: doc.path,
+      section: "document_match",
+    })),
+    confidence: 0.85,
+    needsHumanReview: false,
+    scope: "documentation",
   };
 }
 
@@ -123,10 +192,10 @@ export async function initRag(rootDir) {
   const chunks = [];
   for (const filePath of [...new Set(files)]) {
     try {
-      const text = await readDocument(filePath);
-      if (!text.trim()) continue;
       const metadata = buildDocMetadata(rootDir, filePath);
       docs.push(metadata);
+      const text = await readDocument(filePath);
+      if (!text.trim()) continue;
       const docChunks = splitIntoChunks(text).map((chunkText, index) => ({
         id: `${metadata.path}#${index + 1}`,
         text: chunkText,
@@ -218,6 +287,9 @@ function fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, active
     });
   }
 
+  const listingAnswer = buildDocumentListingAnswer(question);
+  if (listingAnswer) return listingAnswer;
+
   if (!retrievedChunks.length && !operationalContext) {
     return {
       answer:
@@ -255,6 +327,9 @@ function fallbackAnswer(question, retrievedChunks, roomStatus, qrContext, active
 }
 
 export async function answerRagQuestion({ question, roomStatus, qrContext, activeAlerts }) {
+  const listingAnswer = buildDocumentListingAnswer(question);
+  if (listingAnswer) return listingAnswer;
+
   const retrievedChunks = searchRag(question, 6);
   const operationalContext = buildOperationalContext(roomStatus, qrContext, activeAlerts);
 
