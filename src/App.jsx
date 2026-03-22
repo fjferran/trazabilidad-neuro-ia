@@ -772,12 +772,7 @@ function IotMiniLineChart({ values, stroke = "#0f172a", target = null }) {
     })
     .join(" ");
 
-  const minPoint = numericPoints.find((point) => point.numeric === min);
-  const maxPoint = numericPoints.find((point) => point.numeric === max);
-  const minCoords = minPoint ? toCoords(minPoint.numeric, minPoint.index) : null;
-  const maxCoords = maxPoint ? toCoords(maxPoint.numeric, maxPoint.index) : null;
   const latestPoint = numericPoints[numericPoints.length - 1] || null;
-  const latestCoords = latestPoint ? toCoords(latestPoint.numeric, latestPoint.index) : null;
 
   const targetLine = (targetValue) => {
     if (!target || targetValue === null || targetValue === undefined) return null;
@@ -803,20 +798,10 @@ function IotMiniLineChart({ values, stroke = "#0f172a", target = null }) {
           />
         )}
         {targetMinY !== null && (
-          <g>
-            <line x1="0" y1={targetMinY} x2={width} y2={targetMinY} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 4" />
-            <text x="6" y={Math.max(12, targetMinY - 4)} textAnchor="start" fontSize="10" fontWeight="800" fill="#15803d">
-              OBJ MIN
-            </text>
-          </g>
+          <line x1="0" y1={targetMinY} x2={width} y2={targetMinY} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 4" />
         )}
         {targetMaxY !== null && (
-          <g>
-            <line x1="0" y1={targetMaxY} x2={width} y2={targetMaxY} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 4" />
-            <text x="6" y={Math.max(12, targetMaxY - 4)} textAnchor="start" fontSize="10" fontWeight="800" fill="#15803d">
-              OBJ MAX
-            </text>
-          </g>
+          <line x1="0" y1={targetMaxY} x2={width} y2={targetMaxY} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 4" />
         )}
         <polyline
           fill="none"
@@ -826,30 +811,6 @@ function IotMiniLineChart({ values, stroke = "#0f172a", target = null }) {
           strokeLinecap="round"
           points={polyline}
         />
-        {minCoords && (
-          <g>
-            <circle cx={minCoords.x} cy={minCoords.y} r="4.5" fill="#dc2626" />
-            <text x={minCoords.x} y={Math.max(12, minCoords.y - 8)} textAnchor="middle" fontSize="10" fontWeight="800" fill="#b91c1c">
-              MIN
-            </text>
-          </g>
-        )}
-        {maxCoords && (
-          <g>
-            <circle cx={maxCoords.x} cy={maxCoords.y} r="4.5" fill="#2563eb" />
-            <text x={maxCoords.x} y={Math.max(12, maxCoords.y - 8)} textAnchor="middle" fontSize="10" fontWeight="800" fill="#1d4ed8">
-              MAX
-            </text>
-          </g>
-        )}
-        {latestCoords && (
-          <g>
-            <circle cx={latestCoords.x} cy={latestCoords.y} r="5" fill="#0f172a" stroke="#ffffff" strokeWidth="2" />
-            <text x={latestCoords.x} y={Math.min(height - 10, latestCoords.y + 16)} textAnchor="middle" fontSize="10" fontWeight="800" fill="#0f172a">
-              REAL
-            </text>
-          </g>
-        )}
       </svg>
       <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mt-1">
         <span>Mín {formatMetricValue(min)}</span>
