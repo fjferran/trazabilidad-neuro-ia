@@ -540,6 +540,11 @@ async function ensureSchema() {
     CREATE INDEX IF NOT EXISTS idx_iot_policy_profiles_room_active ON iot_policy_profiles(room_id, is_active);
   `;
   withDb().exec(schema);
+  const columns = withDb().prepare(`PRAGMA table_info(iot_alerts)`).all();
+  const columnNames = new Set(columns.map((column) => column.name));
+  if (!columnNames.has("resolved_by_user_id")) {
+    withDb().exec(`ALTER TABLE iot_alerts ADD COLUMN resolved_by_user_id TEXT`);
+  }
 }
 
 function seedRoomsAndPolicies() {
@@ -1102,11 +1107,49 @@ export function listEmergencyAlerts({ roomId = null, activeOnly = false, roomNam
       deviationReference,
       startedAt: row.opened_at,
       endedAt: row.closed_at,
+      resolutionNote: row.resolution_note,
       operatorAckRequired: Boolean(row.operator_ack_required),
       acked: Boolean(row.acked),
+      ackedAt: row.acked_at,
+      ackedByUserId: row.acked_by_user_id,
+      resolvedByUserId: row.resolved_by_user_id,
       immediateActions: parseJson(row.immediate_actions_json, []),
     };
   });
+}
+
+export function acknowledgeEmergencyAlert(alertId, userId = "system") {
+  const database = withDb();
+  const now = nowIso();
+  const info = database
+    .prepare(
+      `UPDATE iot_alerts
+       SET status = 'acknowledged', acked = 1, acked_by_user_id = ?, acked_at = ?, updated_at = ?
+       WHERE id = ? AND status = 'active'`,
+    )
+    .run(userId, now, now, alertId);
+  if (!info.changes) {
+    const existing = database.prepare(`SELECT id FROM iot_alerts WHERE id = ?`).get(alertId);
+    if (!existing) throw new Error("Alerta no encontrada");
+  }
+  return database.prepare(`SELECT * FROM iot_alerts WHERE id = ?`).get(alertId);
+}
+
+export function resolveEmergencyAlert(alertId, note = "Resuelta manualmente", userId = "system") {
+  const database = withDb();
+  const now = nowIso();
+  const info = database
+    .prepare(
+      `UPDATE iot_alerts
+       SET status = 'resolved', closed_at = ?, updated_at = ?, resolution_note = ?, resolved_by_user_id = ?
+       WHERE id = ? AND status IN ('active', 'acknowledged')`,
+    )
+    .run(now, now, note, userId, alertId);
+  if (!info.changes) {
+    const existing = database.prepare(`SELECT id FROM iot_alerts WHERE id = ?`).get(alertId);
+    if (!existing) throw new Error("Alerta no encontrada");
+  }
+  return database.prepare(`SELECT * FROM iot_alerts WHERE id = ?`).get(alertId);
 }
 
 export function evaluateEmergency(payload) {

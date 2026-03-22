@@ -18,6 +18,8 @@ import {
   ingestIotReading,
   initIotSystem,
   listEmergencyAlerts,
+  acknowledgeEmergencyAlert,
+  resolveEmergencyAlert,
   restoreIotPayload,
 } from "./iot.js";
 
@@ -1628,6 +1630,37 @@ app.get("/api/agents/emergency/history", (req, res) => {
     window,
     items: listEmergencyAlerts({ roomName: room, window }),
   });
+});
+
+app.post("/api/agents/emergency/:id/ack", (req, res) => {
+  try {
+    const actor = req.headers["x-user-name"] || req.headers["x-user-role"] || "system";
+    const row = acknowledgeEmergencyAlert(req.params.id, actor);
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `emergency-ack-${Date.now()}`,
+      id: row.id,
+    });
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
+});
+
+app.post("/api/agents/emergency/:id/resolve", (req, res) => {
+  try {
+    const note = req.body?.note || "Resuelta manualmente";
+    const actor = req.headers["x-user-name"] || req.headers["x-user-role"] || "system";
+    const row = resolveEmergencyAlert(req.params.id, note, actor);
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `emergency-resolve-${Date.now()}`,
+      id: row.id,
+    });
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
 });
 
 app.get("/api/trace/:qr", async (req, res) => {
