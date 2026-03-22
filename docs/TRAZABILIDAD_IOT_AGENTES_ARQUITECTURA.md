@@ -398,6 +398,8 @@ Implementacion actual:
 
 - vista `Asistente` en la app web
 - endpoint `POST /api/agents/chat`
+- endpoint `GET /api/agents/chat/health`
+- endpoint `POST /api/agents/chat/reindex`
 - recuperacion documental local sobre SOPs, manuales, PDFs y carpeta `validated_info/`
 - modo estricto sin alucinacion cuando no hay evidencia suficiente
 
@@ -414,6 +416,12 @@ Operacion del RAG:
 - sin `OPENAI_API_KEY`: respuesta extractiva estricta con contexto recuperado
 - con `OPENAI_API_KEY`: respuesta con LLM condicionado por el contexto documental recuperado
 - en ambos casos, si no hay base suficiente, el agente debe declarar que no puede responder con seguridad
+
+Despliegue actual:
+
+- el Mini PC ya ejecuta el backend con indice RAG operativo
+- la clave `OPENAI_API_KEY` debe inyectarse via override de `systemd`
+- no debe persistirse en codigo, JSON ni documentacion versionada
 
 ### 13.2 S2-IoT Agent
 

@@ -31,6 +31,7 @@ El Mini PC operativo queda configurado con:
   - `trazabilidad.service`
 - servicio broker MQTT:
   - `mosquitto.service`
+- `S1` con indice RAG local sobre SOPs, manuales, PDFs y `validated_info/`
 
 ## Script principal
 
@@ -192,6 +193,17 @@ Logs del backend:
 ssh -i "$HOME/.ssh/trazabilidad_minipc_ed25519" root@192.168.0.100 \
   "journalctl -u trazabilidad.service -n 100 --no-pager"
 ```
+
+Reindexado del asistente:
+
+```bash
+curl -X POST http://192.168.0.100:3001/api/agents/chat/reindex
+```
+
+Activacion de `RAG + LLM`:
+
+- configurar `OPENAI_API_KEY` y `OPENAI_MODEL` en el override de `trazabilidad.service`
+- no guardar nunca la clave en el repositorio
 
 Prueba MQTT local en el Mini PC:
 

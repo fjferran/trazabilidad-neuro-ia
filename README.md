@@ -111,6 +111,13 @@ Comportamiento:
 - si no existe, usa un modo extractivo estricto basado en recuperacion documental
 - si no encuentra evidencia suficiente, responde que no puede contestar con seguridad
 
+Estado actual de produccion:
+
+- `S1` ya esta operativo en el Mini PC
+- el indice RAG se construye al arrancar el backend
+- el modo `RAG + LLM` se activa configurando `OPENAI_API_KEY` en el servicio `trazabilidad.service`
+- la clave no debe guardarse nunca en el repositorio
+
 ## Arranque rapido
 
 Instalacion:

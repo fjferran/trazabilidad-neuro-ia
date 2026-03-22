@@ -174,6 +174,41 @@ Formatos soportados:
 - `.pdf`
 - `.json`
 
+## 9.3 Activacion de S1 con LLM
+
+`S1` funciona siempre en modo RAG local. Para activar `RAG + LLM` en el Mini PC:
+
+1. crear o editar el override del servicio:
+
+```bash
+mkdir -p /etc/systemd/system/trazabilidad.service.d
+nano /etc/systemd/system/trazabilidad.service.d/override.conf
+```
+
+2. definir las variables sin guardarlas en el repo:
+
+```ini
+[Service]
+Environment=MQTT_URL=mqtt://javier:javier@127.0.0.1:1883
+Environment=OPENAI_API_KEY=tu_clave_real
+Environment=OPENAI_MODEL=gpt-4.1-mini
+```
+
+3. aplicar cambios:
+
+```bash
+systemctl daemon-reload
+systemctl restart trazabilidad.service
+```
+
+4. verificar:
+
+```bash
+curl http://localhost:3001/api/agents/chat/health
+```
+
+Si no existe `OPENAI_API_KEY`, `S1` sigue funcionando en modo extractivo estricto.
+
 ## 10. Problemas comunes
 
 ### 10.1 No conecta con Google Sheets
@@ -237,4 +272,18 @@ Reindexado manual:
 
 ```bash
 curl -X POST http://localhost:3001/api/agents/chat/reindex
+```
+
+### 10.8 El asistente falla con el modelo LLM
+
+Revisar:
+
+- que `OPENAI_API_KEY` sea valida
+- que el servicio tenga cargada la variable en `systemd`
+- que el modelo configurado sea accesible para esa cuenta
+
+Comprobacion:
+
+```bash
+systemctl show trazabilidad.service --property=Environment --no-pager
 ```

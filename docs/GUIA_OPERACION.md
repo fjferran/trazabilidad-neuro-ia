@@ -275,12 +275,20 @@ Comportamiento esperado:
 
 - si encuentra evidencia en SOPs, manuales, PDFs o `validated_info/`, responde con fuentes
 - si no encuentra base suficiente, indica que no puede responder con seguridad
+- si el sistema dispone de `OPENAI_API_KEY`, puede redactar respuestas mas naturales, pero siempre condicionadas por la documentacion recuperada
 
 La pestaña permite introducir:
 
 - sala
 - QR o lote opcional
 - pregunta libre o preguntas rápidas
+
+Buenas practicas de uso:
+
+- preguntar de forma concreta
+- seleccionar sala antes de consultar una desviacion
+- usar QR/lote cuando la pregunta sea sobre un nodo especifico
+- revisar siempre las fuentes mostradas por el asistente
 
 ## 7. Sincronizacion
 
