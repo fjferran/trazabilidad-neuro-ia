@@ -1834,6 +1834,22 @@ function ActuatorsView({ actuators, loading, onRefresh, onSwitch, onUpdateAutoma
                 Si en la <span className="font-black">Sala de Floración</span> la métrica <span className="font-black">DLI</span> está <span className="font-black">por debajo de 30</span> durante <span className="font-black">300</span> segundos, poner el actuador <span className="font-black">Luces floración</span> en <span className="font-black">ON</span> y aplicar un cooldown de <span className="font-black">600</span> segundos.
               </p>
             </div>
+            <div className="rounded-2xl border border-blue-200 bg-white p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Ejemplo 3 · horario
+              </p>
+              <p className="text-sm font-semibold text-slate-700 leading-relaxed">
+                Poner el actuador <span className="font-black">Luces floración</span> en <span className="font-black">ON</span> de <span className="font-black">08:00</span> a <span className="font-black">20:00</span> en la <span className="font-black">Sala de Floración</span>.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-blue-200 bg-white p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Ejemplo 4 · temporizado
+              </p>
+              <p className="text-sm font-semibold text-slate-700 leading-relaxed">
+                Enciende el actuador <span className="font-black">Bomba riego clones</span> durante <span className="font-black">60</span> segundos.
+              </p>
+            </div>
           </div>
           <p className="text-xs font-semibold text-blue-700">
             Métricas soportadas actualmente: <span className="font-black">ambient.t</span>, <span className="font-black">ambient.h</span>, <span className="font-black">ambient.vpd</span>, <span className="font-black">ambient.dli</span>, <span className="font-black">substrate.t</span>, <span className="font-black">fertigation.ec</span>, <span className="font-black">fertigation.ph</span>.
@@ -1880,10 +1896,13 @@ function ActuatorsView({ actuators, loading, onRefresh, onSwitch, onUpdateAutoma
                 <div className="space-y-2 text-sm font-semibold text-slate-700">
                   <p><span className="font-black">Actuador:</span> {automationParsed.actuator?.name}</p>
                   <p><span className="font-black">Sala:</span> {automationParsed.room}</p>
-                  <p><span className="font-black">Métrica:</span> {automationParsed.automation?.metric}</p>
-                  <p><span className="font-black">Regla:</span> {automationParsed.automation?.comparator} {automationParsed.automation?.threshold}</p>
+                  <p><span className="font-black">Modo:</span> {automationParsed.automation?.mode}</p>
+                  {automationParsed.automation?.metric && <p><span className="font-black">Métrica:</span> {automationParsed.automation?.metric}</p>}
+                  {automationParsed.automation?.comparator && <p><span className="font-black">Regla:</span> {automationParsed.automation?.comparator} {automationParsed.automation?.threshold}</p>}
                   <p><span className="font-black">Acción:</span> {automationParsed.automation?.desiredState ? "ON" : "OFF"}</p>
-                  <p><span className="font-black">Duración:</span> {automationParsed.automation?.durationSeconds}s · <span className="font-black">Cooldown:</span> {automationParsed.automation?.cooldownSeconds}s</p>
+                  {automationParsed.automation?.mode === "metric" && <p><span className="font-black">Duración:</span> {automationParsed.automation?.durationSeconds}s · <span className="font-black">Cooldown:</span> {automationParsed.automation?.cooldownSeconds}s</p>}
+                  {automationParsed.automation?.mode === "schedule" && <p><span className="font-black">Horario:</span> {automationParsed.automation?.startTime} - {automationParsed.automation?.endTime}</p>}
+                  {automationParsed.automation?.mode === "pulse" && <p><span className="font-black">Pulso:</span> {automationParsed.automation?.pulseSeconds}s</p>}
                 </div>
               ) : (
                 <p className="text-sm font-semibold text-red-700">

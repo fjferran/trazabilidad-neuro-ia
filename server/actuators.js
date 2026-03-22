@@ -10,6 +10,7 @@ let actuatorState = {
     timer: null,
     roomStatusProvider: null,
     runtime: {},
+    pulseTimers: {},
   },
 };
 
@@ -37,6 +38,18 @@ const METRIC_ALIASES = {
   "t sustrato": "substrate.t",
   ec: "fertigation.ec",
   ph: "fertigation.ph",
+};
+
+const WEEKDAY_ALIASES = {
+  lunes: 1,
+  martes: 2,
+  miercoles: 3,
+  miércoles: 3,
+  jueves: 4,
+  viernes: 5,
+  sabado: 6,
+  sábado: 6,
+  domingo: 0,
 };
 
 function nowIso() {
@@ -68,12 +81,17 @@ function sanitizeActuator(actuator) {
     notes: actuator.notes || "",
     automation: {
       enabled: Boolean(actuator.automation?.enabled),
+      mode: actuator.automation?.mode || "metric",
       metric: actuator.automation?.metric || null,
       comparator: actuator.automation?.comparator || null,
       threshold: actuator.automation?.threshold ?? null,
       desiredState: Boolean(actuator.automation?.desiredState),
       durationSeconds: actuator.automation?.durationSeconds ?? 0,
       cooldownSeconds: actuator.automation?.cooldownSeconds ?? 0,
+      startTime: actuator.automation?.startTime || null,
+      endTime: actuator.automation?.endTime || null,
+      days: actuator.automation?.days || ["all"],
+      pulseSeconds: actuator.automation?.pulseSeconds ?? 0,
       runtime: actuatorState.automation.runtime[actuator.id] || null,
     },
   };
@@ -112,6 +130,61 @@ function compareMetric(value, comparator, threshold) {
   }
 }
 
+function parseTimeToMinutes(value) {
+  if (!value) return null;
+  const match = String(value).match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function currentMinutes() {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+function normalizeDays(days = []) {
+  if (!days?.length) return ["all"];
+  return days;
+}
+
+function isDayAllowed(days = []) {
+  const normalized = normalizeDays(days);
+  if (normalized.includes("all")) return true;
+  const today = new Date().getDay();
+  return normalized.includes(today);
+}
+
+function isWithinSchedule(startTime, endTime, days) {
+  if (!isDayAllowed(days)) return false;
+  const start = parseTimeToMinutes(startTime);
+  const end = parseTimeToMinutes(endTime);
+  const current = currentMinutes();
+  if (start === null || end === null) return false;
+  if (start <= end) return current >= start && current <= end;
+  return current >= start || current <= end;
+}
+
+function extractTimeRange(text) {
+  const normalized = normalizeText(text);
+  const match = normalized.match(/de\s*(\d{1,2}:\d{2})\s*a\s*(\d{1,2}:\d{2})/);
+  if (!match) return null;
+  return { startTime: match[1], endTime: match[2] };
+}
+
+function extractWeekdays(text) {
+  const normalized = normalizeText(text);
+  const found = Object.entries(WEEKDAY_ALIASES)
+    .filter(([name]) => normalized.includes(name))
+    .map(([, value]) => value);
+  return found.length ? [...new Set(found)] : ["all"];
+}
+
+function isPulseInstruction(text) {
+  const normalized = normalizeText(text);
+  return (normalized.includes("durante") && normalized.includes("seg")) &&
+    (normalized.includes("enciende") || normalized.includes("enciende") || normalized.includes("apaga") || normalized.includes("poner el actuador") || normalized.includes("poner "));
+}
+
 async function evaluateAutomationForActuator(actuator) {
   const runtime = actuatorState.automation.runtime[actuator.id] || {
     lastSatisfiedAt: null,
@@ -125,6 +198,31 @@ async function evaluateAutomationForActuator(actuator) {
   if (!actuator.enabled || !actuator.automation?.enabled) {
     runtime.lastDecision = "disabled";
     runtime.lastEvaluationAt = nowIso();
+    return;
+  }
+
+  if (actuator.automation?.mode === "schedule") {
+    runtime.lastEvaluationAt = nowIso();
+    runtime.lastError = null;
+    const within = isWithinSchedule(
+      actuator.automation.startTime,
+      actuator.automation.endTime,
+      actuator.automation.days,
+    );
+    const desiredState = within ? Boolean(actuator.automation.desiredState) : !Boolean(actuator.automation.desiredState);
+    try {
+      const currentStatus = await fetchShellyStatus(actuator);
+      if (currentStatus.state === desiredState) {
+        runtime.lastDecision = within ? "schedule_in_window" : "schedule_outside_window";
+        return;
+      }
+      await setActuatorState(actuator.id, desiredState, "automation_schedule");
+      runtime.lastTriggeredAt = nowIso();
+      runtime.lastDecision = within ? "schedule_triggered" : "schedule_reverted";
+    } catch (error) {
+      runtime.lastError = error.message;
+      runtime.lastDecision = "error";
+    }
     return;
   }
 
@@ -261,16 +359,66 @@ export function parseAutomationInstruction(text) {
   assertInitialized();
   const actuator = findActuatorByName(text);
   const room = findRoomByText(text) || actuator?.room || null;
+  const timeRange = extractTimeRange(text);
+  const weekdays = extractWeekdays(text);
+  const pulseSeconds = (() => {
+    const match = normalizeText(text).match(/durante\s*(\d+)\s*seg/);
+    return match ? Number(match[1]) : null;
+  })();
+
+  if (timeRange && actuator) {
+    return {
+      valid: true,
+      missing: [],
+      actuator: sanitizeActuator(actuator),
+      room,
+      automation: {
+        enabled: true,
+        mode: "schedule",
+        metric: null,
+        comparator: null,
+        threshold: null,
+        desiredState: normalizeText(text).includes("off") || normalizeText(text).includes("apaga") ? false : true,
+        durationSeconds: 0,
+        cooldownSeconds: 0,
+        startTime: timeRange.startTime,
+        endTime: timeRange.endTime,
+        days: weekdays,
+        pulseSeconds: 0,
+      },
+    };
+  }
+
+  if (isPulseInstruction(text) && actuator && pulseSeconds) {
+    return {
+      valid: true,
+      missing: [],
+      actuator: sanitizeActuator(actuator),
+      room,
+      automation: {
+        enabled: false,
+        mode: "pulse",
+        metric: null,
+        comparator: null,
+        threshold: null,
+        desiredState: normalizeText(text).includes("off") || normalizeText(text).includes("apaga") ? false : true,
+        durationSeconds: 0,
+        cooldownSeconds: 0,
+        startTime: null,
+        endTime: null,
+        days: ["all"],
+        pulseSeconds,
+      },
+    };
+  }
+
   const metric = findMetricByText(text);
   const comparator = findComparator(text);
   const threshold = extractFirstNumberAfter(text, comparator === ">" ? "de" : "de") || (() => {
     const match = normalizeText(text).match(/(?:<|>|igual a|por debajo de|por encima de|menor que|mayor que)\s*(\d+(?:[\.,]\d+)?)/);
     return match ? Number(match[1].replace(",", ".")) : null;
   })();
-  const durationSeconds = (() => {
-    const match = normalizeText(text).match(/durante\s*(\d+)\s*seg/);
-    return match ? Number(match[1]) : null;
-  })();
+  const durationSeconds = pulseSeconds;
   const cooldownSeconds = (() => {
     const match = normalizeText(text).match(/cooldown\s*(?:de)?\s*(\d+)\s*seg/);
     return match ? Number(match[1]) : null;
@@ -293,12 +441,17 @@ export function parseAutomationInstruction(text) {
     room,
     automation: {
       enabled: true,
+      mode: "metric",
       metric,
       comparator,
       threshold,
       desiredState,
       durationSeconds,
       cooldownSeconds,
+      startTime: null,
+      endTime: null,
+      days: ["all"],
+      pulseSeconds: 0,
     },
   };
 }
@@ -391,6 +544,7 @@ export async function updateActuatorAutomation(id, automationPatch = {}) {
   actuator.automation = {
     ...(actuator.automation || {}),
     ...automationPatch,
+    mode: automationPatch.mode || actuator.automation?.mode || "metric",
     threshold:
       automationPatch.threshold !== undefined
         ? Number(automationPatch.threshold)
@@ -403,6 +557,13 @@ export async function updateActuatorAutomation(id, automationPatch = {}) {
       automationPatch.cooldownSeconds !== undefined
         ? Number(automationPatch.cooldownSeconds)
         : Number(actuator.automation?.cooldownSeconds ?? 0),
+    pulseSeconds:
+      automationPatch.pulseSeconds !== undefined
+        ? Number(automationPatch.pulseSeconds)
+        : Number(actuator.automation?.pulseSeconds ?? 0),
+    startTime: automationPatch.startTime !== undefined ? automationPatch.startTime : (actuator.automation?.startTime || null),
+    endTime: automationPatch.endTime !== undefined ? automationPatch.endTime : (actuator.automation?.endTime || null),
+    days: automationPatch.days !== undefined ? automationPatch.days : (actuator.automation?.days || ["all"]),
   };
   await saveActuatorConfig();
   return sanitizeActuator(actuator);
@@ -412,6 +573,18 @@ export async function applyAutomationInstruction(text) {
   const parsed = parseAutomationInstruction(text);
   if (!parsed.valid || !parsed.actuator) {
     throw new Error(`No se pudo interpretar la instrucción. Faltan: ${parsed.missing.join(", ")}`);
+  }
+  if (parsed.automation.mode === "pulse") {
+    const actuator = getActuatorById(parsed.actuator.id);
+    if (!actuator.enabled) throw new Error("Actuador deshabilitado en configuración");
+    await setActuatorState(parsed.actuator.id, parsed.automation.desiredState, "automation_pulse_start");
+    if (actuatorState.automation.pulseTimers[parsed.actuator.id]) {
+      clearTimeout(actuatorState.automation.pulseTimers[parsed.actuator.id]);
+    }
+    actuatorState.automation.pulseTimers[parsed.actuator.id] = setTimeout(() => {
+      setActuatorState(parsed.actuator.id, !parsed.automation.desiredState, "automation_pulse_end").catch(() => {});
+    }, parsed.automation.pulseSeconds * 1000);
+    return sanitizeActuator(actuator);
   }
   return updateActuatorAutomation(parsed.actuator.id, parsed.automation);
 }
