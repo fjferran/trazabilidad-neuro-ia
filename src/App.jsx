@@ -65,6 +65,26 @@ const formatMetricValue = (value, unit = "") => {
   return `${numeric.toFixed(numeric >= 10 ? 1 : 2)}${unit ? ` ${unit}` : ""}`;
 };
 
+const downloadTextFile = (filename, content, mime = "application/json") => {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const escapeCsv = (value) => {
+  const stringValue = String(value ?? "");
+  if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  return stringValue;
+};
+
 const metricVisualConfig = {
   "ambient.t": { label: "Temperatura", unit: "C", stroke: "#dc2626" },
   "ambient.h": { label: "Humedad", unit: "%", stroke: "#2563eb" },
@@ -75,11 +95,31 @@ const metricVisualConfig = {
   "fertigation.ph": { label: "pH", unit: "pH", stroke: "#059669" },
 };
 
+const getMetricRangeState = (value, policy) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || !policy?.target) return "unknown";
+  if (numeric < policy.target.min) return "low";
+  if (numeric > policy.target.max) return "high";
+  return "ok";
+};
+
+const getMetricRangeBadgeClass = (state) => {
+  if (state === "low" || state === "high") {
+    return "bg-red-50 text-red-700 border-red-200";
+  }
+  if (state === "ok") {
+    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  }
+  return "bg-slate-100 text-slate-600 border-slate-200";
+};
+
 const ALERT_FILTER_OPTIONS = {
   rooms: ["Todas", ...IOT_ROOMS],
   severities: ["Todas", "high", "medium", "low"],
   statuses: ["Todas", "active", "acknowledged", "resolved"],
 };
+
+const HISTORY_WINDOW_OPTIONS = ["24h", "7d", "30d"];
 
 function filterAlerts(items = [], filters = {}) {
   return items.filter((item) => {
@@ -390,13 +430,38 @@ function IotAlertPanel({ alerts = [], filters, onFiltersChange }) {
   );
 }
 
-function IotHistoryPanel({ selectedRoom, onSelectRoom, historyData, loading }) {
+function IotHistoryPanel({ selectedRoom, onSelectRoom, selectedWindow, onSelectWindow, historyData, loading }) {
   const metricEntries = Object.entries(historyData?.series || {}).filter(([, values]) => values?.length);
+
+  const exportHistory = () => {
+    if (!historyData) return;
+    downloadTextFile(
+      `iot-history-${selectedRoom.replace(/\s+/g, "-").toLowerCase()}.json`,
+      JSON.stringify(historyData, null, 2),
+    );
+  };
+
+  const exportHistoryCsv = () => {
+    if (!historyData?.series) return;
+    const headers = ["metric", "timestamp", "value"];
+    const rows = [];
+    for (const [metricName, values] of Object.entries(historyData.series)) {
+      for (const point of values || []) {
+        rows.push([metricName, point.ts, point.value]);
+      }
+    }
+    const csv = [headers.join(","), ...rows.map((row) => row.map(escapeCsv).join(","))].join("\n");
+    downloadTextFile(
+      `iot-history-${selectedRoom.replace(/\s+/g, "-").toLowerCase()}-${selectedWindow}.csv`,
+      csv,
+      "text/csv;charset=utf-8",
+    );
+  };
 
   return (
     <motion.div {...fadeUp} transition={{ delay: 0.25 }} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
+        <div className="flex-1">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
             Histórico IoT
           </p>
@@ -404,17 +469,51 @@ function IotHistoryPanel({ selectedRoom, onSelectRoom, historyData, loading }) {
             Evolución reciente por sala
           </h3>
         </div>
-        <select
-          value={selectedRoom}
-          onChange={(event) => onSelectRoom(event.target.value)}
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700"
-        >
-          {IOT_ROOMS.map((room) => (
-            <option key={room} value={room}>
-              {room}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <select
+            value={selectedRoom}
+            onChange={(event) => onSelectRoom(event.target.value)}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700"
+          >
+            {IOT_ROOMS.map((room) => (
+              <option key={room} value={room}>
+                {room}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedWindow}
+            onChange={(event) => onSelectWindow(event.target.value)}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700"
+          >
+            {HISTORY_WINDOW_OPTIONS.map((window) => (
+              <option key={window} value={window}>
+                Ventana: {window}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-2">
+            <span className="pill bg-blue-50 text-blue-700 border border-blue-200">
+              Ventana {selectedWindow}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={exportHistory}
+            disabled={!historyData}
+            className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black uppercase tracking-widest disabled:opacity-50"
+          >
+            Exportar JSON
+          </button>
+          <button
+            type="button"
+            onClick={exportHistoryCsv}
+            disabled={!historyData}
+            className="px-4 py-3 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-black uppercase tracking-widest disabled:opacity-50"
+          >
+            Exportar CSV
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -427,6 +526,12 @@ function IotHistoryPanel({ selectedRoom, onSelectRoom, historyData, loading }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {metricEntries.map(([metricName, values]) => (
             <div key={metricName} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              {(() => {
+                const policy = historyData?.policyMetrics?.[metricName];
+                const latestValue = values[values.length - 1]?.value;
+                const metricState = getMetricRangeState(latestValue, policy);
+                return (
+                  <>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-black text-slate-900">{metricVisualConfig[metricName]?.label || metricName}</p>
@@ -434,11 +539,28 @@ function IotHistoryPanel({ selectedRoom, onSelectRoom, historyData, loading }) {
                     Último valor: {formatMetricValue(values[values.length - 1]?.value, metricVisualConfig[metricName]?.unit)}
                   </p>
                 </div>
-                <span className="text-xs font-bold text-slate-500">{values.length} muestras</span>
+                <div className="text-right space-y-2">
+                  <span className="block text-xs font-bold text-slate-500">{values.length} muestras</span>
+                  {policy?.target && (
+                    <span className={cn("inline-flex px-3 py-1 rounded-xl border text-[10px] font-black uppercase tracking-widest", getMetricRangeBadgeClass(metricState))}>
+                      {metricState === "ok" ? "En objetivo" : metricState === "low" ? "Bajo objetivo" : metricState === "high" ? "Sobre objetivo" : "Sin rango"}
+                    </span>
+                  )}
+                </div>
               </div>
+              {policy?.target && (
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
+                  <span className="font-black text-slate-800">Objetivo</span>
+                  <span>{formatMetricValue(policy.target.min, metricVisualConfig[metricName]?.unit)} - {formatMetricValue(policy.target.max, metricVisualConfig[metricName]?.unit)}</span>
+                  {policy.warning && (
+                    <span className="text-slate-500">Warning {formatMetricValue(policy.warning.min, metricVisualConfig[metricName]?.unit)} - {formatMetricValue(policy.warning.max, metricVisualConfig[metricName]?.unit)}</span>
+                  )}
+                </div>
+              )}
               <IotMiniLineChart
                 values={values}
                 stroke={metricVisualConfig[metricName]?.stroke || "#0f172a"}
+                target={policy?.target}
               />
               <div className="space-y-2 max-h-44 overflow-auto pr-1">
                 {values.slice(-8).reverse().map((point) => (
@@ -448,6 +570,9 @@ function IotHistoryPanel({ selectedRoom, onSelectRoom, historyData, loading }) {
                   </div>
                 ))}
               </div>
+                  </>
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -457,6 +582,39 @@ function IotHistoryPanel({ selectedRoom, onSelectRoom, historyData, loading }) {
 }
 
 function IotAlertHistoryPanel({ items = [], loading = false, filters, onFiltersChange }) {
+  const exportAlerts = () => {
+    const headers = [
+      "room",
+      "alarmCode",
+      "status",
+      "severity",
+      "startedAt",
+      "endedAt",
+      "ackedAt",
+      "ackedByUserId",
+      "resolvedByUserId",
+      "resolutionNote",
+      "deviationTypes",
+      "reason",
+    ];
+    const rows = items.map((item) => [
+      item.room,
+      item.alarmCode,
+      item.status,
+      item.severity,
+      item.startedAt,
+      item.endedAt,
+      item.ackedAt,
+      item.ackedByUserId,
+      item.resolvedByUserId,
+      item.resolutionNote,
+      (item.deviationTypes || []).join(" | "),
+      item.reason,
+    ]);
+    const csv = [headers.join(","), ...rows.map((row) => row.map(escapeCsv).join(","))].join("\n");
+    downloadTextFile("iot-alert-history.csv", csv, "text/csv;charset=utf-8");
+  };
+
   return (
     <motion.div {...fadeUp} transition={{ delay: 0.3 }} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -468,7 +626,17 @@ function IotAlertHistoryPanel({ items = [], loading = false, filters, onFiltersC
             Incidencias recientes registradas
           </h3>
         </div>
-        <span className="pill bg-slate-100 text-slate-600">{items.length}</span>
+        <div className="flex items-center gap-3">
+          <span className="pill bg-slate-100 text-slate-600">{items.length}</span>
+          <button
+            type="button"
+            onClick={exportAlerts}
+            disabled={!items.length}
+            className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black uppercase tracking-widest disabled:opacity-50"
+          >
+            Exportar CSV
+          </button>
+        </div>
       </div>
 
       <AlertFilters value={filters} onChange={onFiltersChange} />
@@ -522,7 +690,7 @@ function IotAlertHistoryPanel({ items = [], loading = false, filters, onFiltersC
   );
 }
 
-function IotMiniLineChart({ values, stroke = "#0f172a" }) {
+function IotMiniLineChart({ values, stroke = "#0f172a", target = null }) {
   const points = values.slice(-24);
   if (!points.length) return null;
 
@@ -543,10 +711,35 @@ function IotMiniLineChart({ values, stroke = "#0f172a" }) {
     })
     .join(" ");
 
+  const targetLine = (targetValue) => {
+    if (!target || targetValue === null || targetValue === undefined) return null;
+    const y = height - ((targetValue - min) / range) * (height - 10) - 5;
+    return Math.max(4, Math.min(height - 6, y));
+  };
+
+  const targetMinY = targetLine(target?.min);
+  const targetMaxY = targetLine(target?.max);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-24" preserveAspectRatio="none">
         <line x1="0" y1={height - 6} x2={width} y2={height - 6} stroke="#e2e8f0" strokeWidth="1" />
+        {targetMinY !== null && targetMaxY !== null && (
+          <rect
+            x="0"
+            y={Math.min(targetMinY, targetMaxY)}
+            width={width}
+            height={Math.abs(targetMaxY - targetMinY) || 2}
+            fill="#dcfce7"
+            opacity="0.6"
+          />
+        )}
+        {targetMinY !== null && (
+          <line x1="0" y1={targetMinY} x2={width} y2={targetMinY} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 4" />
+        )}
+        {targetMaxY !== null && (
+          <line x1="0" y1={targetMaxY} x2={width} y2={targetMaxY} stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 4" />
+        )}
         <polyline
           fill="none"
           stroke={stroke}
@@ -1040,6 +1233,8 @@ function IotDataView({
   onAlertFiltersChange,
   selectedRoom,
   onSelectRoom,
+  selectedWindow,
+  onSelectWindow,
   historyData,
   historyLoading,
   onAckAlert,
@@ -1155,6 +1350,8 @@ function IotDataView({
       <IotHistoryPanel
         selectedRoom={selectedRoom}
         onSelectRoom={onSelectRoom}
+        selectedWindow={selectedWindow}
+        onSelectWindow={onSelectWindow}
         historyData={historyData}
         loading={historyLoading}
       />
@@ -3415,6 +3612,7 @@ export default function App() {
     status: "Todas",
   });
   const [selectedIotRoom, setSelectedIotRoom] = useState(IOT_ROOMS[0]);
+  const [selectedIotWindow, setSelectedIotWindow] = useState("24h");
   const [iotHistory, setIotHistory] = useState(null);
   const [iotHistoryLoading, setIotHistoryLoading] = useState(false);
   const [syncingMirror, setSyncingMirror] = useState(false);
@@ -3432,7 +3630,7 @@ export default function App() {
     checkHealth();
     loadMirrorStatus();
     loadIotOverview();
-    loadIotHistory(IOT_ROOMS[0]);
+    loadIotHistory(IOT_ROOMS[0], "24h");
     loadIotAlertHistory();
 
     // Verificar si hay un ID en la URL para abrir el buscador directamente (Opción A de QR)
@@ -3530,11 +3728,11 @@ export default function App() {
     }
   };
 
-  const loadIotHistory = async (room = selectedIotRoom) => {
+  const loadIotHistory = async (room = selectedIotRoom, window = selectedIotWindow) => {
     setIotHistoryLoading(true);
     try {
       const response = await axios.get(
-        `/api/agents/iot/rooms/${encodeURIComponent(room)}/history`,
+        `/api/agents/iot/rooms/${encodeURIComponent(room)}/history?window=${encodeURIComponent(window)}`,
       );
       setIotHistory(response.data);
     } catch (error) {
@@ -3557,7 +3755,7 @@ export default function App() {
           },
         },
       );
-      await Promise.all([loadIotOverview(), loadIotHistory(selectedIotRoom), loadIotAlertHistory()]);
+      await Promise.all([loadIotOverview(), loadIotHistory(selectedIotRoom, selectedIotWindow), loadIotAlertHistory()]);
     } catch (error) {
       console.error(error);
     }
@@ -3582,7 +3780,7 @@ export default function App() {
           },
         },
       );
-      await Promise.all([loadIotOverview(), loadIotHistory(selectedIotRoom), loadIotAlertHistory()]);
+      await Promise.all([loadIotOverview(), loadIotHistory(selectedIotRoom, selectedIotWindow), loadIotAlertHistory()]);
     } catch (error) {
       console.error(error);
     }
@@ -3927,7 +4125,12 @@ export default function App() {
                   selectedRoom={selectedIotRoom}
                   onSelectRoom={(room) => {
                     setSelectedIotRoom(room);
-                    loadIotHistory(room);
+                    loadIotHistory(room, selectedIotWindow);
+                  }}
+                  selectedWindow={selectedIotWindow}
+                  onSelectWindow={(window) => {
+                    setSelectedIotWindow(window);
+                    loadIotHistory(selectedIotRoom, window);
                   }}
                   historyData={iotHistory}
                   historyLoading={iotHistoryLoading}

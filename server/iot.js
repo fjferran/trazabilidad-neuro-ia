@@ -1020,8 +1020,10 @@ export function getRoomHistory(roomName, options = {}) {
   const resolvedRoom = resolveRoomName(roomName);
   const roomId = getRoomIdByName(resolvedRoom);
   if (!roomId) return null;
+  const policy = getPolicyByRoomName(resolvedRoom);
 
-  const from = options.from ? new Date(options.from).toISOString() : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const windowMs = parseWindowMs(options.window || "24h");
+  const from = options.from ? new Date(options.from).toISOString() : new Date(Date.now() - windowMs).toISOString();
   const to = options.to ? new Date(options.to).toISOString() : nowIso();
   const rows = withDb()
     .prepare(
@@ -1055,7 +1057,21 @@ export function getRoomHistory(roomName, options = {}) {
     delete series["fertigation.ph"];
   }
 
-  return { room: resolvedRoom, from, to, resolution: options.resolution || "raw", series };
+  const policyMetrics = {};
+  for (const metricName of Object.keys(series)) {
+    if (!policy?.metrics?.[metricName]) continue;
+    policyMetrics[metricName] = policy.metrics[metricName];
+  }
+
+  return {
+    room: resolvedRoom,
+    from,
+    to,
+    window: options.window || "24h",
+    resolution: options.resolution || "raw",
+    series,
+    policyMetrics,
+  };
 }
 
 export function listEmergencyAlerts({ roomId = null, activeOnly = false, roomName = null, window = null } = {}) {

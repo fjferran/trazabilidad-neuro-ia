@@ -1587,6 +1587,7 @@ app.get("/api/agents/iot/rooms/:room/history", (req, res) => {
   const history = getRoomHistory(req.params.room, {
     from: req.query.from,
     to: req.query.to,
+    window: req.query.window,
     resolution: req.query.resolution,
   });
   if (!history) {
