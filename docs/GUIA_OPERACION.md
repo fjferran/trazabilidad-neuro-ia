@@ -28,6 +28,8 @@ La app dispone de una pestaña especifica `Datos IoT` para operacion ambiental p
 
 La app dispone tambien de una pestaña `Asistente` para consultas documentales y operativas.
 
+La app dispone tambien de una pestaña `Actuadores` para control de relés Shelly por IP.
+
 ## 2.1 Roles operativos
 
 La app distingue estos perfiles:
@@ -289,6 +291,39 @@ Buenas practicas de uso:
 - seleccionar sala antes de consultar una desviacion
 - usar QR/lote cuando la pregunta sea sobre un nodo especifico
 - revisar siempre las fuentes mostradas por el asistente
+
+## 6.7 Pestaña Actuadores
+
+La pestaña `Actuadores` permite:
+
+- ver relés Shelly configurados
+- consultar si están `ON`, `OFF` o `DISABLED`
+- accionar manualmente `ON` y `OFF`
+- definir reglas automáticas por condición
+- activar o desactivar la automatización de cada actuador
+
+Campos programables por regla:
+
+- métrica
+- comparador
+- umbral
+- acción deseada (`ON` o `OFF`)
+- duración mínima de condición
+- cooldown
+
+Ejemplo de regla:
+
+- `ambient.h < 70`
+- durante `120 s`
+- acción `ON`
+- cooldown `300 s`
+
+Buenas prácticas:
+
+- no activar un actuador sin confirmar IP real y relé correcto
+- mantener `enabled: false` hasta verificar el dispositivo
+- probar manualmente antes de activar reglas automáticas
+- usar cooldown para evitar ciclos rápidos repetidos
 
 ## 7. Sincronizacion
 

@@ -14,6 +14,7 @@
 | --- | --- | --- | --- |
 | 1.0 | 21/03/2026 | Creacion inicial del SOP IoT con enfoque GACP, arquitectura local-first y agentes especializados. | Neuro-IA Team |
 | 1.1 | 22/03/2026 | Actualizacion de operativa real en Mini PC con broker MQTT autenticado, pestaña `Datos IoT`, historico, exportaciones y gestion manual de alertas. | Neuro-IA Team |
+| 1.2 | 22/03/2026 | Integracion de actuadores Shelly por IP con control manual y automatizacion condicionada por métricas IoT. | Neuro-IA Team |
 
 ---
 
@@ -62,12 +63,14 @@ Aplica a:
 - base local SQLite
 - dashboard y visor QR de la app
 - agentes `S1`, `S2-IoT` y `S2-E`
+- actuadores Shelly por IP cuando estén configurados y validados
 
 No aplica en esta fase a:
 
-- actuacion automatica directa sobre hardware
 - notificaciones externas por canales ajenos a la app web
 - uso de Google Sheets como almacenamiento de telemetria cruda
+
+La actuación sobre hardware solo aplica cuando el actuador está configurado, validado y habilitado explícitamente.
 
 ---
 
@@ -80,6 +83,7 @@ No aplica en esta fase a:
 - sondas de EC y pH para fertirriego
 - dispositivos ESP o equivalentes
 - gateway local
+- actuadores Shelly con relé ON/OFF para bombas, luces u otros dispositivos
 - infraestructura edge soportada:
   - Mini PC con Proxmox como plataforma principal de produccion estable
   - Raspberry Pi 5 como despliegue compacto soportado
@@ -95,6 +99,7 @@ No aplica en esta fase a:
 - aplicacion Neuro-IA Trazabilidad
 - pestaña `Datos IoT` para operacion de sala, historico y alertas
 - pestaña `Asistente` para consulta documental contextual
+- pestaña `Actuadores` para control y automatizacion condicionada de relés Shelly
 - dashboard web de supervision
 - motor de politicas por sala
 - agentes `S1`, `S2-IoT` y `S2-E`
@@ -130,6 +135,9 @@ No aplica en esta fase a:
 - **Ack**: reconocimiento humano de una alerta activa.
 - **Cierre de alerta**: resolucion manual o automatica de una alerta, con observacion cuando corresponda.
 - **Politica activa**: perfil vigente de thresholds, persistencia y reglas combinadas aprobado para una sala.
+- **Actuador Shelly**: dispositivo de relé ON/OFF accesible por IP en red local.
+- **Automatizacion condicionada**: activacion o desactivacion de un relé cuando una métrica cumple una condición durante un tiempo mínimo y respetando un cooldown.
+- **Cooldown**: periodo minimo de espera antes de volver a ejecutar la misma automatizacion sobre un actuador.
 
 ---
 
@@ -325,6 +333,17 @@ Antes del cierre del turno se debe:
 - dejar observaciones si hubo desviaciones significativas
 - reconocer o cerrar alertas resueltas indicando observacion de cierre cuando proceda
 
+#### 10.6 Actuadores
+
+Si existen actuadores configurados y habilitados, se debe:
+
+- comprobar su estado operativo en la pestaña `Actuadores`
+- verificar que la IP y el relé son correctos
+- probar manualmente `ON/OFF` antes de activar una regla automática nueva
+- revisar la última decisión de automatización y errores asociados
+
+Las reglas automáticas solo deben activarse cuando estén validadas por la operativa correspondiente.
+
 ---
 
 ### 11. Gestion de alarmas, incidencias y desviaciones
@@ -476,6 +495,7 @@ El sistema se considera operativo cuando:
 - registro de mantenimiento y calibracion
 - registro de backup y recuperacion
 - registro de evaluaciones de agentes
+- registro de acciones manuales y automáticas sobre actuadores cuando aplique
 
 ---
 

@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "description": "Configuración local de actuadores Shelly por IP",
+  "actuators": [
+    {
+      "id": "shelly-bomba-riego-clones",
+      "name": "Bomba riego clones",
+      "room": "Sala de Clones",
+      "category": "riego",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.210",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Configurar IP real antes de activar",
+      "automation": {
+        "enabled": false,
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-luces-floracion",
+      "name": "Luces floración",
+      "room": "Sala de Floración",
+      "category": "luces",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.211",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Configurar IP real antes de activar",
+      "automation": {
+        "enabled": false,
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0
+      }
+    }
+  ]
+}

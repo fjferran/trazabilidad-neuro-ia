@@ -28,6 +28,8 @@ El proyecto debe contener al menos:
 - `src/App.jsx`
 - `server/server.js`
 - `server/iot.js`
+- `server/actuators.js`
+- `server/actuators.json`
 - `package.json`
 - `vite.config.js`
 - `credenciales.json`
@@ -209,6 +211,36 @@ curl http://localhost:3001/api/agents/chat/health
 
 Si no existe `OPENAI_API_KEY`, `S1` sigue funcionando en modo extractivo estricto.
 
+## 9.4 Configuracion de actuadores Shelly
+
+La configuracion de actuadores se mantiene en:
+
+- `server/actuators.json`
+
+Cada actuador define:
+
+- `id`
+- `name`
+- `room`
+- `category`
+- `driver`
+- `ip`
+- `relay`
+- `enabled`
+- bloque `automation`
+
+El driver actual soportado es:
+
+- `shelly-gen1`
+
+Antes de activar un actuador:
+
+- verificar IP real
+- verificar relé correcto
+- dejar `enabled: true`
+- probar `ON/OFF` manualmente
+- activar luego la automatización si procede
+
 ## 10. Problemas comunes
 
 ### 10.1 No conecta con Google Sheets
@@ -287,3 +319,13 @@ Comprobacion:
 ```bash
 systemctl show trazabilidad.service --property=Environment --no-pager
 ```
+
+### 10.9 El actuador Shelly no responde
+
+Revisar:
+
+- IP real del dispositivo en `server/actuators.json`
+- conectividad de red al Shelly
+- relé configurado
+- `enabled: true`
+- que el dispositivo responda a la API Shelly esperada

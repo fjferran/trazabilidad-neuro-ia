@@ -25,6 +25,7 @@ import {
   ExternalLink,
   AlertTriangle,
   MessageSquare,
+  Power,
 } from "lucide-react";
 
 // ─── UTILS ───────────────────────────────────────────────
@@ -231,6 +232,7 @@ const rolePermissions = {
     "dashboard",
     "iot",
     "assistant",
+    "actuators",
     "labores",
     "admin",
     "search",
@@ -238,11 +240,12 @@ const rolePermissions = {
     "genetics",
     "audit",
   ],
-  qa: ["dashboard", "iot", "assistant", "labores", "search", "audit", "genetics"],
+  qa: ["dashboard", "iot", "assistant", "actuators", "labores", "search", "audit", "genetics"],
   cultivo: [
     "dashboard",
     "iot",
     "assistant",
+    "actuators",
     "labores",
     "admin",
     "search",
@@ -254,6 +257,7 @@ const rolePermissions = {
     "dashboard",
     "iot",
     "assistant",
+    "actuators",
     "labores",
     "admin",
     "search",
@@ -1673,6 +1677,262 @@ function AssistantView({ currentUser, selectedRoom, onSelectRoom }) {
           )}
         </motion.div>
       )}
+    </div>
+  );
+}
+
+const AUTOMATION_METRICS = [
+  { value: "ambient.t", label: "Temperatura sala" },
+  { value: "ambient.h", label: "Humedad sala" },
+  { value: "ambient.vpd", label: "VPD" },
+  { value: "ambient.dli", label: "DLI" },
+  { value: "substrate.t", label: "T sustrato" },
+  { value: "fertigation.ec", label: "EC" },
+  { value: "fertigation.ph", label: "pH" },
+];
+
+const AUTOMATION_COMPARATORS = ["<", "<=", ">", ">=", "=="];
+
+function ActuatorsView({ actuators, loading, onRefresh, onSwitch, onUpdateAutomation }) {
+  const [drafts, setDrafts] = useState({});
+
+  useEffect(() => {
+    const nextDrafts = {};
+    actuators.forEach((actuator) => {
+      nextDrafts[actuator.id] = {
+        metric: actuator.automation?.metric || "",
+        comparator: actuator.automation?.comparator || "<",
+        threshold:
+          actuator.automation?.threshold === null || actuator.automation?.threshold === undefined
+            ? ""
+            : String(actuator.automation.threshold),
+        desiredState: actuator.automation?.desiredState ? "on" : "off",
+        durationSeconds: String(actuator.automation?.durationSeconds ?? 0),
+        cooldownSeconds: String(actuator.automation?.cooldownSeconds ?? 0),
+      };
+    });
+    setDrafts(nextDrafts);
+  }, [actuators]);
+
+  const updateDraft = (id, patch) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        ...patch,
+      },
+    }));
+  };
+
+  const saveAutomation = async (actuatorId) => {
+    const draft = drafts[actuatorId];
+    if (!draft) return;
+    await onUpdateAutomation(actuatorId, {
+      metric: draft.metric || null,
+      comparator: draft.metric ? draft.comparator : null,
+      threshold: draft.metric && draft.threshold !== "" ? Number(draft.threshold) : null,
+      desiredState: draft.desiredState === "on",
+      durationSeconds: Number(draft.durationSeconds || 0),
+      cooldownSeconds: Number(draft.cooldownSeconds || 0),
+    });
+  };
+
+  return (
+    <div className="space-y-8">
+      <motion.div {...fadeUp} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+              Shelly ON/OFF
+            </p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+              Actuadores
+            </h2>
+            <p className="text-sm font-semibold text-slate-600 mt-3 max-w-3xl">
+              Control manual de actuadores Shelly por IP para bombas de riego, luces y otros relés operativos.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="px-4 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-black uppercase tracking-widest"
+          >
+            Actualizar estado
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-sm font-semibold text-slate-500">Cargando actuadores...</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {actuators.map((actuator) => (
+              <div key={actuator.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-6 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-black text-slate-900">{actuator.name}</p>
+                    <p className="text-xs font-semibold text-slate-500 mt-1">
+                      {actuator.room} · {actuator.category} · {actuator.ip}
+                    </p>
+                  </div>
+                  <span className={cn("px-3 py-1 rounded-xl border text-[10px] font-black uppercase tracking-widest", actuator.status?.state ? "bg-emerald-50 text-emerald-700 border-emerald-200" : actuator.status?.source === "disabled" ? "bg-slate-100 text-slate-600 border-slate-200" : "bg-red-50 text-red-700 border-red-200")}>
+                    {actuator.status?.source === "disabled"
+                      ? "DISABLED"
+                      : actuator.status?.state
+                        ? "ON"
+                        : "OFF"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    Relay {actuator.relay}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    Driver {actuator.driver}
+                  </div>
+                </div>
+
+                <p className="text-xs font-semibold text-slate-500 min-h-[2.5rem]">
+                  {actuator.status?.error || actuator.notes || "Sin incidencias registradas"}
+                </p>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">
+                      Automatización
+                    </p>
+                    <span className={cn("px-3 py-1 rounded-xl border text-[10px] font-black uppercase tracking-widest", actuator.automation?.enabled ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200")}>
+                      {actuator.automation?.enabled ? "ACTIVA" : "OFF"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      Métrica {actuator.automation?.metric || "N/D"}
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      Regla {actuator.automation?.comparator || "N/D"} {actuator.automation?.threshold ?? "N/D"}
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      Duración {actuator.automation?.durationSeconds ?? 0}s
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      Cooldown {actuator.automation?.cooldownSeconds ?? 0}s
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <select
+                      value={drafts[actuator.id]?.metric || ""}
+                      onChange={(event) => updateDraft(actuator.id, { metric: event.target.value })}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                    >
+                      <option value="">Métrica automática</option>
+                      {AUTOMATION_METRICS.map((metric) => (
+                        <option key={metric.value} value={metric.value}>
+                          {metric.label}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={drafts[actuator.id]?.comparator || "<"}
+                      onChange={(event) => updateDraft(actuator.id, { comparator: event.target.value })}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                    >
+                      {AUTOMATION_COMPARATORS.map((item) => (
+                        <option key={item} value={item}>
+                          Comparador {item}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      value={drafts[actuator.id]?.threshold || ""}
+                      onChange={(event) => updateDraft(actuator.id, { threshold: event.target.value })}
+                      placeholder="Umbral"
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                    />
+                    <select
+                      value={drafts[actuator.id]?.desiredState || "on"}
+                      onChange={(event) => updateDraft(actuator.id, { desiredState: event.target.value })}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                    >
+                      <option value="on">Acción ON</option>
+                      <option value="off">Acción OFF</option>
+                    </select>
+                    <input
+                      value={drafts[actuator.id]?.durationSeconds || "0"}
+                      onChange={(event) => updateDraft(actuator.id, { durationSeconds: event.target.value })}
+                      placeholder="Duración segundos"
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                    />
+                    <input
+                      value={drafts[actuator.id]?.cooldownSeconds || "0"}
+                      onChange={(event) => updateDraft(actuator.id, { cooldownSeconds: event.target.value })}
+                      placeholder="Cooldown segundos"
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => onUpdateAutomation(actuator.id, { enabled: true })}
+                      className="px-3 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-xs font-black uppercase tracking-widest"
+                    >
+                      Activar regla
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateAutomation(actuator.id, { enabled: false })}
+                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest"
+                    >
+                      Desactivar regla
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => saveAutomation(actuator.id)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-widest"
+                  >
+                    Guardar regla
+                  </button>
+                  {actuator.automation?.runtime?.lastDecision && (
+                    <p className="text-xs font-semibold text-slate-500">
+                      Última decisión: {actuator.automation.runtime.lastDecision}
+                    </p>
+                  )}
+                  {actuator.automation?.runtime?.lastError && (
+                    <p className="text-xs font-semibold text-red-600">
+                      Error auto: {actuator.automation.runtime.lastError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onSwitch(actuator.id, true)}
+                    disabled={!actuator.enabled}
+                    className="flex-1 px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase tracking-widest disabled:opacity-50"
+                  >
+                    ON
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSwitch(actuator.id, false)}
+                    disabled={!actuator.enabled}
+                    className="flex-1 px-4 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-black uppercase tracking-widest disabled:opacity-50"
+                  >
+                    OFF
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
+                  <span>Actualizado</span>
+                  <span>{actuator.status?.updatedAt ? new Date(actuator.status.updatedAt).toLocaleTimeString("es-ES") : "N/D"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }
@@ -3927,6 +4187,8 @@ export default function App() {
   const [selectedIotWindow, setSelectedIotWindow] = useState("24h");
   const [iotHistory, setIotHistory] = useState(null);
   const [iotHistoryLoading, setIotHistoryLoading] = useState(false);
+  const [actuators, setActuators] = useState([]);
+  const [actuatorsLoading, setActuatorsLoading] = useState(false);
   const [syncingMirror, setSyncingMirror] = useState(false);
   const [restoringBackup, setRestoringBackup] = useState(false);
   const [urlSearchTerm, setUrlSearchTerm] = useState(null);
@@ -3944,6 +4206,7 @@ export default function App() {
     loadIotOverview();
     loadIotHistory(IOT_ROOMS[0], "24h");
     loadIotAlertHistory("7d");
+    loadActuators();
 
     // Verificar si hay un ID en la URL para abrir el buscador directamente (Opción A de QR)
     if (typeof window !== "undefined") {
@@ -4054,6 +4317,39 @@ export default function App() {
       setIotHistory(null);
     } finally {
       setIotHistoryLoading(false);
+    }
+  };
+
+  const loadActuators = async () => {
+    setActuatorsLoading(true);
+    try {
+      const response = await axios.get("/api/actuators");
+      setActuators(response.data?.items || []);
+    } catch (error) {
+      console.error(error);
+      setActuators([]);
+    } finally {
+      setActuatorsLoading(false);
+    }
+  };
+
+  const switchActuator = async (actuatorId, targetState) => {
+    try {
+      await axios.post(`/api/actuators/${encodeURIComponent(actuatorId)}/${targetState ? "on" : "off"}`);
+      await loadActuators();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || error.message);
+    }
+  };
+
+  const updateActuatorAutomation = async (actuatorId, patch) => {
+    try {
+      await axios.post(`/api/actuators/${encodeURIComponent(actuatorId)}/automation`, patch);
+      await loadActuators();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || error.message);
     }
   };
 
@@ -4181,6 +4477,7 @@ export default function App() {
     { id: "dashboard", label: "Ecosistema", icon: TrendingUp },
     { id: "iot", label: "Datos IoT", icon: Database },
     { id: "assistant", label: "Asistente", icon: MessageSquare },
+    { id: "actuators", label: "Actuadores", icon: Power },
     { id: "genetics", label: "Genéticas", icon: Dna },
     { id: "labores", label: "Labores", icon: Activity },
     { id: "admin", label: "Pasaporte", icon: FileCheck },
@@ -4463,6 +4760,15 @@ export default function App() {
                   currentUser={currentUser}
                   selectedRoom={selectedIotRoom}
                   onSelectRoom={setSelectedIotRoom}
+                />
+              )}
+              {page === "actuators" && (
+                <ActuatorsView
+                  actuators={actuators}
+                  loading={actuatorsLoading}
+                  onRefresh={loadActuators}
+                  onSwitch={switchActuator}
+                  onUpdateAutomation={updateActuatorAutomation}
                 />
               )}
               {page === "genetics" && (

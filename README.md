@@ -84,6 +84,7 @@ La app permite:
 - operar con agentes `S2-IoT` y `S2-E` para analitica y emergencias
 - operar una pestaña dedicada `Datos IoT` con historico, exportaciones y gestion de alertas
 - operar un `S1 Chat-Agent` con recuperacion documental estricta sobre SOPs, manuales, PDFs y carpeta `validated_info/`
+- controlar actuadores Shelly por IP con ON/OFF manual y reglas automáticas por condición
 
 ## Capa IoT
 
@@ -103,6 +104,32 @@ La capa IoT se apoya en:
   - `Raspberry Pi 5`
 
 El backend actual resuelve la `Ubicación` del nodo hacia una sala IoT y añade contexto ambiental al visor QR y al estado general del sistema.
+
+## Actuadores Shelly
+
+La app incluye una pestaña `Actuadores` para controlar relés Shelly por IP.
+
+Capacidades actuales:
+
+- consulta de estado del relé
+- encendido manual `ON`
+- apagado manual `OFF`
+- programación de reglas por condición sobre métricas IoT
+- activación y desactivación de automatizaciones por actuador
+
+Configuración base:
+
+- `server/actuators.json`
+- driver actual soportado:
+  - `shelly-gen1`
+
+Rutas principales de actuadores:
+
+- `GET /api/actuators`
+- `POST /api/actuators/reload`
+- `POST /api/actuators/:id/on`
+- `POST /api/actuators/:id/off`
+- `POST /api/actuators/:id/automation`
 
 ## S1 RAG
 

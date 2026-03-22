@@ -23,6 +23,14 @@ import {
   restoreIotPayload,
 } from "./iot.js";
 import { answerRagQuestion, getRagHealth, initRag, refreshRagIndex } from "./rag.js";
+import {
+  getActuatorsHealth,
+  initActuators,
+  listActuators,
+  reloadActuators,
+  setActuatorState,
+  updateActuatorAutomation,
+} from "./actuators.js";
 
 function getLocalIp() {
   const nets = os.networkInterfaces();
@@ -1110,6 +1118,7 @@ async function initGoogle() {
   try {
     await initIotSystem(path.join(__dirname, ".."));
     await initRag(path.join(__dirname, ".."));
+    await initActuators(path.join(__dirname, ".."), { getRoomStatus });
     connectMqttBroker();
     const localSnapshot = await loadLocalSnapshot();
     if (localSnapshot) {
@@ -1779,6 +1788,7 @@ app.get("/api/trace/:qr", async (req, res) => {
 // Health check
 app.get("/api/health", (req, res) => {
   const iot = getIotHealth();
+  const actuators = getActuatorsHealth();
   res.json({
     status: "ok",
     sheets_connected: !!sheets,
@@ -1798,7 +1808,81 @@ app.get("/api/health", (req, res) => {
       ).length,
     },
     iot,
+    actuators,
   });
+});
+
+app.get("/api/actuators", async (req, res) => {
+  try {
+    const items = await listActuators();
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `actuators-${Date.now()}`,
+      items,
+      health: getActuatorsHealth(),
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+});
+
+app.post("/api/actuators/reload", async (req, res) => {
+  try {
+    const result = await reloadActuators();
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `actuators-reload-${Date.now()}`,
+      ...result,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: error.message });
+  }
+});
+
+app.post("/api/actuators/:id/on", async (req, res) => {
+  try {
+    const actor = req.headers["x-user-name"] || req.headers["x-user-role"] || "system";
+    const result = await setActuatorState(req.params.id, true, actor);
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `actuator-on-${Date.now()}`,
+      ...result,
+    });
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
+});
+
+app.post("/api/actuators/:id/off", async (req, res) => {
+  try {
+    const actor = req.headers["x-user-name"] || req.headers["x-user-role"] || "system";
+    const result = await setActuatorState(req.params.id, false, actor);
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `actuator-off-${Date.now()}`,
+      ...result,
+    });
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
+});
+
+app.post("/api/actuators/:id/automation", async (req, res) => {
+  try {
+    const actuator = await updateActuatorAutomation(req.params.id, req.body || {});
+    return res.json({
+      status: "success",
+      generatedAt: new Date().toISOString(),
+      traceId: `actuator-automation-${Date.now()}`,
+      actuator,
+    });
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
 });
 
 app.get("/api/mirror/status", (req, res) => {

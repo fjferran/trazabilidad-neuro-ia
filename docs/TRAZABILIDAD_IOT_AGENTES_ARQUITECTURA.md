@@ -56,6 +56,10 @@ El alcance inicial no incluye:
 - almacenamiento de series IoT en Google Sheets
 - control autonomo sin supervision humana
 
+Nota de evolucion:
+
+- el sistema ya dispone de una capa inicial de actuadores Shelly por IP con control manual y automatizacion condicionada, siempre bajo configuracion explicita y sin autonomia no supervisada por defecto
+
 ## 4. Principios de diseno
 
 La arquitectura se basa en estos principios:
@@ -89,6 +93,8 @@ La aplica el backend Node/Express actual, ampliado con:
 - persistencia `SQLite`
 - evaluacion de politicas
 - generacion de snapshots y alertas
+- control de actuadores Shelly por IP
+- automatizacion condicionada por metrica, duracion y cooldown
 
 ### 5.4 Capa de datos
 
@@ -124,6 +130,8 @@ Incluye tres servicios logicos:
 
 Expone endpoints REST para frontend y consultas contextuales.
 
+Incluye tambien endpoints de actuacion controlada para relés Shelly.
+
 ### 5.8 Capa UI web
 
 Integra los resultados en:
@@ -131,6 +139,7 @@ Integra los resultados en:
 - `Dashboard`
 - `SearchView`
 - futura vista `Asistente`
+- `Actuadores`
 
 ### 5.9 Perfiles de hardware soportados
 
@@ -514,6 +523,16 @@ Todos los contratos deben mantener:
 - `status`
 - `generatedAt`
 - `traceId`
+
+### 14.5 Actuadores
+
+- `GET /api/actuators`
+- `POST /api/actuators/reload`
+- `POST /api/actuators/:id/on`
+- `POST /api/actuators/:id/off`
+- `POST /api/actuators/:id/automation`
+
+La configuracion persistente de actuadores se mantiene en `server/actuators.json`.
 
 ## 15. Integracion en frontend
 
