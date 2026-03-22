@@ -113,6 +113,7 @@ const defaultUsers = [
 const rolePermissions = {
   operario: [
     "dashboard",
+    "iot",
     "labores",
     "admin",
     "search",
@@ -120,9 +121,10 @@ const rolePermissions = {
     "genetics",
     "audit",
   ],
-  qa: ["dashboard", "labores", "search", "audit", "genetics"],
+  qa: ["dashboard", "iot", "labores", "search", "audit", "genetics"],
   cultivo: [
     "dashboard",
+    "iot",
     "labores",
     "admin",
     "search",
@@ -132,6 +134,7 @@ const rolePermissions = {
   ],
   tecnico: [
     "dashboard",
+    "iot",
     "labores",
     "admin",
     "search",
@@ -701,8 +704,6 @@ function Dashboard({
   options,
   apiStatus,
   mirrorStatus,
-  iotRooms,
-  iotAlerts,
   onSync,
   onRetry,
   onDiscard,
@@ -755,14 +756,6 @@ function Dashboard({
         <ActivityFeed activity={options.activity} />
         <MiniChart chartData={options.chartData} />
       </div>
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {iotRooms.map((room, index) => (
-            <IotRoomCard key={room.room} room={room} delay={index * 0.05} />
-          ))}
-        </div>
-        <IotAlertPanel alerts={iotAlerts} />
-      </div>
       <SyncPanel
         apiStatus={apiStatus}
         mirrorStatus={mirrorStatus}
@@ -776,6 +769,80 @@ function Dashboard({
         restoring={restoring}
         currentRole={currentRole}
       />
+    </div>
+  );
+}
+
+function IotDataView({ apiStatus, iotRooms, iotAlerts }) {
+  const roomsOnline = apiStatus?.iot?.roomsOnline ?? iotRooms.filter((room) => ["OK", "WARNING", "ALARM"].includes(room?.classification?.status)).length;
+  const staleRooms = apiStatus?.iot?.staleRooms ?? iotRooms.filter((room) => ["STALE", "OFFLINE"].includes(room?.classification?.status)).length;
+  const lastTelemetry = apiStatus?.iot?.lastTelemetryAt;
+
+  return (
+    <div className="space-y-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <MetricCard
+          title="Salas con telemetría"
+          value={roomsOnline}
+          icon={Database}
+          accent="bg-emerald-600"
+          delay={0}
+        />
+        <MetricCard
+          title="Alertas IoT"
+          value={iotAlerts.length}
+          icon={AlertTriangle}
+          accent="bg-red-600"
+          delay={0.1}
+        />
+        <MetricCard
+          title="Salas degradadas"
+          value={staleRooms}
+          icon={Zap}
+          accent="bg-amber-600"
+          delay={0.2}
+        />
+        <MetricCard
+          title="Broker MQTT"
+          value={apiStatus?.iot?.mqttConnected ? "ONLINE" : "OFFLINE"}
+          icon={Activity}
+          accent={apiStatus?.iot?.mqttConnected ? "bg-blue-600" : "bg-slate-500"}
+          delay={0.3}
+        />
+      </div>
+
+      <motion.div {...fadeUp} transition={{ delay: 0.2 }} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+              Estado general IoT
+            </p>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+              Monitorización por sala
+            </h3>
+            <p className="text-sm font-semibold text-slate-600 mt-2">
+              Última telemetría: {lastTelemetry ? new Date(lastTelemetry).toLocaleString("es-ES") : "Sin datos recientes"}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              Broker: {apiStatus?.iot?.mqttConnected ? "Conectado" : "Sin conexión"}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              SQLite: {apiStatus?.iot?.sqliteConnected ? "Activa" : "Error"}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {iotRooms.map((room, index) => (
+            <IotRoomCard key={room.room} room={room} delay={index * 0.05} />
+          ))}
+        </div>
+        <IotAlertPanel alerts={iotAlerts} />
+      </div>
     </div>
   );
 }
@@ -3180,6 +3247,7 @@ export default function App() {
 
   const nav = [
     { id: "dashboard", label: "Ecosistema", icon: TrendingUp },
+    { id: "iot", label: "Datos IoT", icon: Database },
     { id: "genetics", label: "Genéticas", icon: Dna },
     { id: "labores", label: "Labores", icon: Activity },
     { id: "admin", label: "Pasaporte", icon: FileCheck },
@@ -3416,8 +3484,6 @@ export default function App() {
                   options={options}
                   apiStatus={apiStatus}
                   mirrorStatus={mirrorStatus}
-                  iotRooms={iotRoomStatus}
-                  iotAlerts={iotAlerts}
                   onSync={syncMirrorNow}
                   onRetry={retryQueueItem}
                   onDiscard={discardQueueItem}
@@ -3427,6 +3493,13 @@ export default function App() {
                   syncing={syncingMirror}
                   restoring={restoringBackup}
                   currentRole={currentRole}
+                />
+              )}
+              {page === "iot" && (
+                <IotDataView
+                  apiStatus={apiStatus}
+                  iotRooms={iotRoomStatus}
+                  iotAlerts={iotAlerts}
                 />
               )}
               {page === "genetics" && (
