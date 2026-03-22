@@ -216,6 +216,8 @@ Si no existe `OPENAI_API_KEY`, `S1` sigue funcionando en modo extractivo estrict
 La configuracion de actuadores se mantiene en:
 
 - `server/actuators.json`
+- plantilla recomendada:
+  - `server/actuators.template.json`
 
 Cada actuador define:
 

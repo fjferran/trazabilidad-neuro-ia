@@ -1,0 +1,276 @@
+{
+  "version": "1.0",
+  "description": "Plantilla recomendada de actuadores Shelly por IP. Copiar valores a server/actuators.json y completar IPs, relés y enabled.",
+  "actuators": [
+    {
+      "id": "shelly-bomba-riego-clones",
+      "name": "Bomba riego clones",
+      "room": "Sala de Clones",
+      "category": "riego",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.210",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar bomba antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "metric",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-bomba-riego-madres",
+      "name": "Bomba riego madres",
+      "room": "Sala de Madres",
+      "category": "riego",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.211",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar bomba antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "metric",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-bomba-riego-vegetativo",
+      "name": "Bomba riego vegetativo",
+      "room": "Sala de Vegetativo",
+      "category": "riego",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.212",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar bomba antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "metric",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-bomba-riego-floracion",
+      "name": "Bomba riego floración",
+      "room": "Sala de Floración",
+      "category": "riego",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.213",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar bomba antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "metric",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-luces-vegetativo",
+      "name": "Luces vegetativo",
+      "room": "Sala de Vegetativo",
+      "category": "luces",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.214",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar luces antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "schedule",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-luces-floracion",
+      "name": "Luces floración",
+      "room": "Sala de Floración",
+      "category": "luces",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.215",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar luces antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "schedule",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-extractor-clones",
+      "name": "Extractor clones",
+      "room": "Sala de Clones",
+      "category": "ventilacion",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.216",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar extractor antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "metric",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-extractor-floracion",
+      "name": "Extractor floración",
+      "room": "Sala de Floración",
+      "category": "ventilacion",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.217",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar extractor antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "metric",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-humidificador-clones",
+      "name": "Humidificador clones",
+      "room": "Sala de Clones",
+      "category": "humedad",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.218",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar humidificador antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "metric",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    },
+    {
+      "id": "shelly-deshumidificador-floracion",
+      "name": "Deshumidificador floración",
+      "room": "Sala de Floración",
+      "category": "humedad",
+      "driver": "shelly-gen1",
+      "ip": "192.168.0.219",
+      "relay": 0,
+      "enabled": false,
+      "notes": "Rellenar IP real y validar deshumidificador antes de activar",
+      "automation": {
+        "enabled": false,
+        "mode": "metric",
+        "metric": null,
+        "comparator": null,
+        "threshold": null,
+        "desiredState": true,
+        "durationSeconds": 0,
+        "cooldownSeconds": 0,
+        "startTime": null,
+        "endTime": null,
+        "days": [
+          "all"
+        ],
+        "pulseSeconds": 0
+      }
+    }
+  ]
+}
