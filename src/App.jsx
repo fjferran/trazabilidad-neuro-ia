@@ -24,6 +24,7 @@ import {
   RefreshCw,
   ExternalLink,
   AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 
 // ─── UTILS ───────────────────────────────────────────────
@@ -229,6 +230,7 @@ const rolePermissions = {
   operario: [
     "dashboard",
     "iot",
+    "assistant",
     "labores",
     "admin",
     "search",
@@ -236,10 +238,11 @@ const rolePermissions = {
     "genetics",
     "audit",
   ],
-  qa: ["dashboard", "iot", "labores", "search", "audit", "genetics"],
+  qa: ["dashboard", "iot", "assistant", "labores", "search", "audit", "genetics"],
   cultivo: [
     "dashboard",
     "iot",
+    "assistant",
     "labores",
     "admin",
     "search",
@@ -250,6 +253,7 @@ const rolePermissions = {
   tecnico: [
     "dashboard",
     "iot",
+    "assistant",
     "labores",
     "admin",
     "search",
@@ -1430,6 +1434,194 @@ function IotDataView({
         selectedWindow={alertHistoryWindow}
         onSelectWindow={onAlertHistoryWindowChange}
       />
+    </div>
+  );
+}
+
+function AssistantView({ currentUser, selectedRoom, onSelectRoom }) {
+  const [question, setQuestion] = useState("");
+  const [qrId, setQrId] = useState("");
+  const [answer, setAnswer] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const quickQuestions = [
+    "Resume el estado actual de la sala seleccionada.",
+    "Explica la alerta activa de la sala seleccionada.",
+    "Qué SOP aplica a esta desviación.",
+    "Qué revisar primero en esta sala.",
+  ];
+
+  const askAssistant = async (customQuestion = question) => {
+    if (!customQuestion.trim()) return;
+    setLoading(true);
+    try {
+      const response = await axios.post("/api/agents/chat", {
+        question: customQuestion,
+        user: {
+          id: currentUser?.id,
+          name: currentUser?.name,
+          role: currentUser?.role,
+        },
+        context: {
+          room: selectedRoom,
+          qrId: qrId.trim() || undefined,
+          includeTraceability: true,
+          includeIotSummary: true,
+          includeActiveAlerts: true,
+        },
+      });
+      setAnswer(response.data);
+      setQuestion(customQuestion);
+    } catch (error) {
+      console.error(error);
+      setAnswer({
+        answer: error.response?.data?.message || error.message,
+        recommendations: [],
+        sources: [],
+        confidence: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <motion.div {...fadeUp} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+              S1 Chat-Agent
+            </p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+              Asistente operativo
+            </h2>
+            <p className="text-sm font-semibold text-slate-600 mt-3 max-w-3xl">
+              Consulta SOPs, estado IoT por sala, contexto de lote y recomendaciones operativas sin salir de la app.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-600 min-w-[280px]">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              Usuario: {currentUser?.name || "N/D"}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              Rol: {currentUser?.role || "N/D"}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <select
+            value={selectedRoom}
+            onChange={(event) => onSelectRoom(event.target.value)}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700"
+          >
+            {IOT_ROOMS.map((room) => (
+              <option key={room} value={room}>
+                {room}
+              </option>
+            ))}
+          </select>
+          <input
+            value={qrId}
+            onChange={(event) => setQrId(event.target.value)}
+            placeholder="QR / lote opcional"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700"
+          />
+          <button
+            type="button"
+            onClick={() => askAssistant()}
+            disabled={loading || !question.trim()}
+            className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase tracking-widest disabled:opacity-50"
+          >
+            {loading ? "Consultando..." : "Preguntar"}
+          </button>
+        </div>
+
+        <textarea
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          rows={5}
+          placeholder="Pregunta algo sobre la sala, una desviación, un lote o el SOP aplicable..."
+          className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-300"
+        />
+
+        <div className="flex flex-wrap gap-2">
+          {quickQuestions.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => askAssistant(item)}
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
+      {answer && (
+        <motion.div {...fadeUp} transition={{ delay: 0.1 }} className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                Respuesta del asistente
+              </p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                Interpretación contextual
+              </h3>
+            </div>
+            <span className="pill bg-slate-100 text-slate-600">
+              Confianza {Math.round((answer.confidence || 0) * 100)}%
+            </span>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm font-semibold leading-relaxed text-slate-800">
+              {answer.answer}
+            </p>
+          </div>
+
+          {answer.recommendations?.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Recomendaciones
+              </p>
+              <div className="space-y-3">
+                {answer.recommendations.map((item, index) => (
+                  <div key={`${item}-${index}`} className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {answer.sources?.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Fuentes
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {answer.sources.map((source, index) => (
+                  <div key={`${source.title || source.type}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-black text-slate-900">{source.title || source.type}</p>
+                    {source.section && (
+                      <p className="text-xs font-semibold text-slate-500 mt-1">{source.section}</p>
+                    )}
+                    {source.room && (
+                      <p className="text-xs font-semibold text-slate-500 mt-1">Sala: {source.room}</p>
+                    )}
+                    {source.qrId && (
+                      <p className="text-xs font-semibold text-slate-500 mt-1">QR: {source.qrId}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -3937,6 +4129,7 @@ export default function App() {
   const nav = [
     { id: "dashboard", label: "Ecosistema", icon: TrendingUp },
     { id: "iot", label: "Datos IoT", icon: Database },
+    { id: "assistant", label: "Asistente", icon: MessageSquare },
     { id: "genetics", label: "Genéticas", icon: Dna },
     { id: "labores", label: "Labores", icon: Activity },
     { id: "admin", label: "Pasaporte", icon: FileCheck },
@@ -4212,6 +4405,13 @@ export default function App() {
                   historyLoading={iotHistoryLoading}
                   onAckAlert={acknowledgeIotAlert}
                   onResolveAlert={resolveIotAlert}
+                />
+              )}
+              {page === "assistant" && (
+                <AssistantView
+                  currentUser={currentUser}
+                  selectedRoom={selectedIotRoom}
+                  onSelectRoom={setSelectedIotRoom}
                 />
               )}
               {page === "genetics" && (

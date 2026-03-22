@@ -61,6 +61,111 @@ app.use("/local-mirror/assets", express.static(LOCAL_MIRROR_ASSETS_DIR));
 
 let sheets;
 
+function resolveSopSectionByRoom(room) {
+  const map = {
+    "Sala de Clones": "8.1 Sala de Clones",
+    "Sala de Madres": "8.2 Sala de Madres",
+    "Sala de Vegetativo": "8.3 Sala de Vegetativo",
+    "Sala de Floración": "8.4 Sala de Floracion",
+    "Almacén Cosecha": "8.5 Almacen Cosecha",
+  };
+  return map[room] || "11. Gestion de alarmas, incidencias y desviaciones";
+}
+
+function buildAssistantAnswer(question, roomStatus, qrContext, activeAlerts) {
+  const normalized = String(question || "").toLowerCase();
+  const recommendations = [];
+  const sources = [];
+  let answer = "No tengo contexto suficiente para responder con precisión.";
+  let confidence = 0.55;
+
+  if (roomStatus?.room) {
+    sources.push({
+      type: "iot_status",
+      title: `Estado IoT · ${roomStatus.room}`,
+      section: roomStatus.classification?.status,
+      room: roomStatus.room,
+    });
+    sources.push({
+      type: "sop",
+      title: "SOP-IOT-001",
+      section: resolveSopSectionByRoom(roomStatus.room),
+    });
+  }
+
+  if (qrContext?.node?.id) {
+    sources.push({
+      type: "traceability",
+      title: "Pasaporte de trazabilidad",
+      qrId: qrContext.node.id,
+      section: qrContext.type,
+    });
+  }
+
+  if (normalized.includes("estado") || normalized.includes("resume")) {
+    if (roomStatus?.room) {
+      answer = `${roomStatus.room} está en estado ${roomStatus.classification.status}. ${roomStatus.classification.reason}`;
+      if (activeAlerts.length) {
+        recommendations.push("Revisar la alerta activa y confirmar si la desviación es real o instrumental.");
+      }
+      confidence = 0.92;
+    }
+  }
+
+  if (normalized.includes("sop") || normalized.includes("procedimiento")) {
+    if (activeAlerts[0]?.deviationReference) {
+      answer = `La referencia operativa principal es ${activeAlerts[0].deviationReference.document}, sección ${activeAlerts[0].deviationReference.section}.`;
+      confidence = 0.93;
+    } else if (roomStatus?.room) {
+      answer = `La referencia principal para ${roomStatus.room} es SOP-IOT-001, sección ${resolveSopSectionByRoom(roomStatus.room)}.`;
+      confidence = 0.88;
+    }
+  }
+
+  if (normalized.includes("alerta") || normalized.includes("desviaci")) {
+    if (activeAlerts.length) {
+      const alert = activeAlerts[0];
+      answer = `La alerta activa corresponde a ${alert.alarmCode}. ${alert.deviationExplanation || alert.reason}`;
+      if (alert.immediateActions?.length) {
+        recommendations.push(...alert.immediateActions.slice(0, 3));
+      }
+      confidence = 0.94;
+    } else {
+      answer = "No hay alertas activas para el contexto seleccionado en este momento.";
+      confidence = 0.84;
+    }
+  }
+
+  if (normalized.includes("revisar") || normalized.includes("primero")) {
+    if (activeAlerts.length) {
+      const alert = activeAlerts[0];
+      answer = `Lo primero es revisar la sala ${alert.room} y confirmar la desviación detectada: ${alert.deviationTypes?.join(", ") || alert.alarmCode}.`;
+      recommendations.push(...(alert.immediateActions || []).slice(0, 3));
+      confidence = 0.9;
+    } else if (roomStatus?.room) {
+      answer = `Prioriza comprobar la última lectura, el estado del broker MQTT y la frescura de datos de ${roomStatus.room}.`;
+      recommendations.push("Verificar que la sala mantiene lecturas recientes y sin alertas críticas.");
+      confidence = 0.8;
+    }
+  }
+
+  if (normalized.includes("lote") || normalized.includes("qr") || qrContext?.node?.id) {
+    if (qrContext?.node?.id) {
+      answer = `El lote ${qrContext.node.id} está asociado a ${qrContext.iot?.room || "sin sala IoT resuelta"}. ${qrContext.iot?.summary || "No hay resumen IoT disponible."}`;
+      confidence = 0.9;
+    }
+  }
+
+  return {
+    answer,
+    recommendations: [...new Set(recommendations)].slice(0, 4),
+    sources,
+    confidence,
+    needsHumanReview: confidence < 0.75,
+    scope: qrContext?.node?.id ? "traceability" : "iot",
+  };
+}
+
 const SHEET_DEFS = {
   genetica: {
     key: "genetica",
@@ -1661,6 +1766,41 @@ app.post("/api/agents/emergency/:id/resolve", (req, res) => {
     });
   } catch (error) {
     return res.status(400).json({ status: "error", message: error.message });
+  }
+});
+
+app.post("/api/agents/chat", async (req, res) => {
+  try {
+    const question = String(req.body?.question || "").trim();
+    if (!question) {
+      return res.status(400).json({ status: "error", message: "Falta la pregunta del usuario." });
+    }
+
+    await MirrorCache.syncAll();
+    const room = req.body?.context?.room || null;
+    const qrId = req.body?.context?.qrId || null;
+    const roomStatus = room ? getRoomStatus(room, "24h") : null;
+    const activeAlerts = room ? listEmergencyAlerts({ roomName: room, activeOnly: true }) : [];
+    let qrContext = null;
+
+    if (qrId) {
+      const node = MirrorCache.index.byId[String(qrId).toUpperCase()];
+      if (node) {
+        qrContext = {
+          type: node.typeLabel,
+          node: {
+            id: node.id,
+            type: node.type,
+          },
+          iot: getIotContextForNode(node),
+        };
+      }
+    }
+
+    const result = buildAssistantAnswer(question, roomStatus, qrContext, activeAlerts);
+    return res.json(createAgentResponse("S1_CHAT", result));
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: error.message });
   }
 });
 
