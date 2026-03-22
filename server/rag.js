@@ -8,8 +8,11 @@ let ragState = {
   rootDir: null,
   docs: [],
   chunks: [],
+  geneticsCatalog: {},
   lastIndexedAt: null,
 };
+
+const GENETIC_DOC_TYPES = ["Cannabinoides", "Terpenos", "INASE", "RNCP", "Imagen"];
 
 function nowIso() {
   return new Date().toISOString();
@@ -104,6 +107,30 @@ function buildDocMetadata(rootDir, filePath) {
   };
 }
 
+function extractGeneticDocInfo(doc) {
+  const titleWithoutExt = (doc.title || "").replace(path.extname(doc.title || ""), "");
+  if (!titleWithoutExt.includes("_")) return null;
+  const [geneticName, docType] = titleWithoutExt.split(/_(.+)/);
+  if (!geneticName || !docType || !GENETIC_DOC_TYPES.includes(docType)) return null;
+  return { geneticName, docType };
+}
+
+function buildGeneticsCatalog(docs) {
+  const catalog = {};
+  for (const doc of docs) {
+    const info = extractGeneticDocInfo(doc);
+    if (!info) continue;
+    if (!catalog[info.geneticName]) {
+      catalog[info.geneticName] = {
+        name: info.geneticName,
+        docs: {},
+      };
+    }
+    catalog[info.geneticName].docs[info.docType] = doc;
+  }
+  return catalog;
+}
+
 function extractCandidateTerms(question) {
   const normalized = normalizeText(question);
   const tokens = tokenize(normalized);
@@ -137,7 +164,127 @@ function findMatchingDocuments(question) {
     .sort((a, b) => a.path.localeCompare(b.path));
 }
 
+function findMatchingGenetics(question) {
+  const normalized = normalizeText(question);
+  return Object.values(ragState.geneticsCatalog || {}).filter((entry) =>
+    normalized.includes(normalizeText(entry.name)),
+  );
+}
+
+function detectRequestedDocType(question) {
+  const normalized = normalizeText(question);
+  if (normalized.includes("cannabinoid")) return "Cannabinoides";
+  if (normalized.includes("terpen")) return "Terpenos";
+  if (normalized.includes("inase")) return "INASE";
+  if (normalized.includes("rncp")) return "RNCP";
+  if (normalized.includes("imagen") || normalized.includes("foto")) return "Imagen";
+  return null;
+}
+
+function extractFocusedExcerpt(text, geneticName, requestedDocType) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (!clean) return "";
+  const normalizedClean = normalizeText(clean);
+  const normalizedName = normalizeText(geneticName);
+  const index = normalizedClean.indexOf(normalizedName);
+  if (index === -1) {
+    return clean.slice(0, 900);
+  }
+
+  const before = Math.max(0, index - 260);
+  const after = Math.min(clean.length, index + 420);
+  let excerpt = clean.slice(before, after).trim();
+
+  const docTypeNorm = normalizeText(requestedDocType);
+  const typeIndex = normalizedClean.indexOf(docTypeNorm);
+  if (typeIndex !== -1 && typeIndex < index) {
+    const sectionStart = Math.max(0, typeIndex - 80);
+    excerpt = clean.slice(sectionStart, after).trim();
+  }
+
+  return excerpt;
+}
+
+function buildGeneticDocumentContentAnswer(question) {
+  const matchingGenetics = findMatchingGenetics(question);
+  const requestedDocType = detectRequestedDocType(question);
+  if (!matchingGenetics.length || !requestedDocType) return null;
+
+  const targetGenetic = matchingGenetics[0];
+  const targetDoc = targetGenetic.docs[requestedDocType];
+  if (!targetDoc) {
+    const available = Object.keys(targetGenetic.docs).sort().join(", ") || "ninguno";
+    return {
+      answer: `No encuentro un documento de tipo ${requestedDocType} para la genética ${targetGenetic.name}. Documentos disponibles: ${available}.`,
+      recommendations: [
+        "Comprueba si falta subir ese documento a la carpeta de trazabilidad o a `validated_info/`.",
+      ],
+      sources: Object.values(targetGenetic.docs).map((doc) => ({
+        type: doc.type,
+        title: doc.title,
+        path: doc.path,
+        section: "genetic_inventory",
+      })),
+      confidence: 0.9,
+      needsHumanReview: false,
+      scope: "documentation",
+    };
+  }
+
+  const targetChunks = ragState.chunks
+    .filter((chunk) => chunk.metadata.path === targetDoc.path)
+    .slice(0, 4);
+  const text = targetChunks.map((chunk) => chunk.text).join("\n\n").trim();
+  if (!text) {
+    return {
+      answer: `He localizado el documento ${targetDoc.path}, pero no puedo extraer contenido textual suficiente para responder con seguridad sobre ${requestedDocType} de ${targetGenetic.name}.`,
+      recommendations: [
+        "Abre el PDF original o valida si existe una versión textual adicional en `validated_info/`.",
+      ],
+      sources: [
+        {
+          type: targetDoc.type,
+          title: targetDoc.title,
+          path: targetDoc.path,
+          section: "document_match",
+        },
+      ],
+      confidence: 0.55,
+      needsHumanReview: true,
+      scope: "documentation",
+    };
+  }
+
+  const focusedExcerpt = extractFocusedExcerpt(
+    text,
+    targetGenetic.name,
+    requestedDocType,
+  );
+  const finalText = focusedExcerpt || text.slice(0, 2400);
+
+  return {
+    answer: `Documento localizado para ${targetGenetic.name} (${requestedDocType}):\n\n${finalText}`,
+    recommendations: [
+      "Si necesitas una interpretación más concreta, pregunta de nuevo indicando el compuesto o dato específico que buscas dentro del documento.",
+    ],
+    sources: [
+      {
+        type: targetDoc.type,
+        title: targetDoc.title,
+        path: targetDoc.path,
+        section: "document_content",
+      },
+    ],
+    confidence: 0.88,
+    needsHumanReview: false,
+    scope: "documentation",
+  };
+}
+
 function buildDocumentListingAnswer(question) {
+  const contentAnswer = buildGeneticDocumentContentAnswer(question);
+  if (contentAnswer) return contentAnswer;
+
   const matchingDocs = findMatchingDocuments(question);
   if (!(normalizeText(question).includes("genet") || normalizeText(question).includes("document"))) {
     return null;
@@ -217,6 +364,7 @@ export async function initRag(rootDir) {
     rootDir,
     docs,
     chunks,
+    geneticsCatalog: buildGeneticsCatalog(docs),
     lastIndexedAt: nowIso(),
   };
   return { docs: docs.length, chunks: chunks.length, lastIndexedAt: ragState.lastIndexedAt };
