@@ -85,6 +85,7 @@ La app permite:
 - operar una pestaña dedicada `Datos IoT` con historico, exportaciones y gestion de alertas
 - operar un `S1 Chat-Agent` con recuperacion documental estricta sobre SOPs, manuales, PDFs y carpeta `validated_info/`
 - controlar actuadores Shelly por IP con ON/OFF manual y reglas automáticas por condición
+- programar actuadores Shelly por condición, horario y pulsos temporizados desde la app
 
 ## Capa IoT
 
@@ -115,7 +116,10 @@ Capacidades actuales:
 - encendido manual `ON`
 - apagado manual `OFF`
 - programación de reglas por condición sobre métricas IoT
+- programación horaria `ON/OFF`
+- pulsos temporizados
 - activación y desactivación de automatizaciones por actuador
+- chat guiado para interpretar reglas en lenguaje natural
 
 Configuración base:
 
@@ -130,6 +134,8 @@ Rutas principales de actuadores:
 - `POST /api/actuators/:id/on`
 - `POST /api/actuators/:id/off`
 - `POST /api/actuators/:id/automation`
+- `POST /api/actuators/automation/parse`
+- `POST /api/actuators/automation/apply`
 
 ## S1 RAG
 

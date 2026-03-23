@@ -95,6 +95,8 @@ La aplica el backend Node/Express actual, ampliado con:
 - generacion de snapshots y alertas
 - control de actuadores Shelly por IP
 - automatizacion condicionada por metrica, duracion y cooldown
+- automatizacion por horario y pulsos temporizados
+- interpretacion guiada de reglas de actuadores en lenguaje natural
 
 ### 5.4 Capa de datos
 
@@ -531,8 +533,16 @@ Todos los contratos deben mantener:
 - `POST /api/actuators/:id/on`
 - `POST /api/actuators/:id/off`
 - `POST /api/actuators/:id/automation`
+- `POST /api/actuators/automation/parse`
+- `POST /api/actuators/automation/apply`
 
 La configuracion persistente de actuadores se mantiene en `server/actuators.json`.
+
+Modos soportados actualmente:
+
+- `metric`
+- `schedule`
+- `pulse`
 
 ## 15. Integracion en frontend
 

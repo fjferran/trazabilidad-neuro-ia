@@ -15,6 +15,7 @@
 | 1.0 | 21/03/2026 | Creacion inicial del SOP IoT con enfoque GACP, arquitectura local-first y agentes especializados. | Neuro-IA Team |
 | 1.1 | 22/03/2026 | Actualizacion de operativa real en Mini PC con broker MQTT autenticado, pestaña `Datos IoT`, historico, exportaciones y gestion manual de alertas. | Neuro-IA Team |
 | 1.2 | 22/03/2026 | Integracion de actuadores Shelly por IP con control manual y automatizacion condicionada por métricas IoT. | Neuro-IA Team |
+| 1.3 | 22/03/2026 | Ampliacion de actuadores con programación por horario, pulsos temporizados y chat guiado de automatización. | Neuro-IA Team |
 
 ---
 
@@ -138,6 +139,8 @@ La actuación sobre hardware solo aplica cuando el actuador está configurado, v
 - **Actuador Shelly**: dispositivo de relé ON/OFF accesible por IP en red local.
 - **Automatizacion condicionada**: activacion o desactivacion de un relé cuando una métrica cumple una condición durante un tiempo mínimo y respetando un cooldown.
 - **Cooldown**: periodo minimo de espera antes de volver a ejecutar la misma automatizacion sobre un actuador.
+- **Automatizacion por horario**: activacion o desactivacion de un actuador dentro de una franja horaria definida.
+- **Pulso temporizado**: accion ON u OFF durante un tiempo determinado, con reversión automática posterior.
 
 ---
 
@@ -341,6 +344,8 @@ Si existen actuadores configurados y habilitados, se debe:
 - verificar que la IP y el relé son correctos
 - probar manualmente `ON/OFF` antes de activar una regla automática nueva
 - revisar la última decisión de automatización y errores asociados
+- validar si el modo configurado es por condición, horario o pulso
+- revisar la interpretación del chat de automatización antes de aplicar la regla
 
 Las reglas automáticas solo deben activarse cuando estén validadas por la operativa correspondiente.
 

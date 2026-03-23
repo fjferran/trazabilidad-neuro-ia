@@ -300,7 +300,10 @@ La pestaña `Actuadores` permite:
 - consultar si están `ON`, `OFF` o `DISABLED`
 - accionar manualmente `ON` y `OFF`
 - definir reglas automáticas por condición
+- definir automatizaciones por horario
+- definir pulsos temporizados
 - activar o desactivar la automatización de cada actuador
+- usar un chat guiado para interpretar reglas en lenguaje natural
 
 Campos programables por regla:
 
@@ -311,12 +314,25 @@ Campos programables por regla:
 - duración mínima de condición
 - cooldown
 
+Modos adicionales:
+
+- `Horario`: mantener un actuador `ON` u `OFF` entre dos horas
+- `Pulso`: activar o desactivar un actuador durante un número de segundos y revertir automáticamente
+
 Ejemplo de regla:
 
 - `ambient.h < 70`
 - durante `120 s`
 - acción `ON`
 - cooldown `300 s`
+
+Ejemplo de horario:
+
+- `Poner el actuador Luces floración en ON de 08:00 a 20:00 en la Sala de Floración.`
+
+Ejemplo de pulso:
+
+- `Enciende el actuador Bomba riego clones durante 60 segundos.`
 
 Buenas prácticas:
 

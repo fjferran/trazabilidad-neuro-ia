@@ -231,6 +231,17 @@ Cada actuador define:
 - `enabled`
 - bloque `automation`
 
+Campos relevantes del bloque `automation`:
+
+- `mode`: `metric`, `schedule` o `pulse`
+- `metric`, `comparator`, `threshold`
+- `desiredState`
+- `durationSeconds`
+- `cooldownSeconds`
+- `startTime`, `endTime`
+- `days`
+- `pulseSeconds`
+
 El driver actual soportado es:
 
 - `shelly-gen1`
@@ -242,6 +253,11 @@ Antes de activar un actuador:
 - dejar `enabled: true`
 - probar `ON/OFF` manualmente
 - activar luego la automatización si procede
+
+Para usar programación en lenguaje natural desde la app, el backend expone:
+
+- `POST /api/actuators/automation/parse`
+- `POST /api/actuators/automation/apply`
 
 ## 10. Problemas comunes
 
