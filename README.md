@@ -27,6 +27,10 @@ Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sinc
   - guia practica de uso del agente `S1`
   - ejemplos de preguntas, limites y reindexado
 
+- `docs/ESQUEMA_LLM_Y_AGENTES.md`
+  - explica donde usa LLM el sistema y donde no
+  - separa `S1` de la logica determinista de IoT y actuadores
+
 - `docs/GUIA_BACKUP_Y_RECUPERACION.md`
   - exportacion de backup
   - restauracion desde UI y API
