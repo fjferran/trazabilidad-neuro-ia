@@ -200,6 +200,8 @@ La integracion se realiza asi:
 
 Esto evita alterar el modelo principal basado en Google Sheets y `local_mirror`.
 
+La trazabilidad productiva ya contempla una extensión adicional de proceso para `Extracción`, vinculada a un lote de `Cosecha` y destinada a registrar el peso del extracto y su laboratorio asociado.
+
 ## 7. Modelo operativo por salas
 
 El sistema adopta un catalogo cerrado de salas:

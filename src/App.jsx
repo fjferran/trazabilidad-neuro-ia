@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   MessageSquare,
   Power,
+  FlaskConical,
 } from "lucide-react";
 
 // ─── UTILS ───────────────────────────────────────────────
@@ -875,6 +876,8 @@ function ActivityFeed({ activity }) {
                   <Sun size={18} />
                 ) : item.type === "cosecha" ? (
                   <Scissors size={18} />
+                ) : item.type === "extraccion" ? (
+                  <FlaskConical size={18} />
                 ) : (
                   <Package size={18} />
                 )}
@@ -2112,6 +2115,9 @@ function AdminPanel({ options, onRefresh }) {
     terpenos: "",
     imagen_url: "",
     notas: "",
+    peso_extracto: "",
+    laboratorio: "",
+    estado: "",
   };
   const [form, setForm] = useState(initialForm);
 
@@ -2123,6 +2129,8 @@ function AdminPanel({ options, onRefresh }) {
       options.vegetativos?.find((v) => v.id === form.origen_id)) ||
     (tab === "cosecha" &&
       options.floraciones?.find((f) => f.id === form.origen_id)) ||
+    (tab === "extraccion" &&
+      options.cosechas?.find((c) => c.id === form.origen_id)) ||
     null;
 
   const getMotherId = (geneticaId, fecha) => {
@@ -2156,6 +2164,7 @@ function AdminPanel({ options, onRefresh }) {
     { id: "lote", label: "VEGETAR", icon: Package },
     { id: "floracion", label: "FLOR", icon: Sun },
     { id: "cosecha", label: "COSECHA", icon: Scissors },
+    { id: "extraccion", label: "EXTRACCIÓN", icon: FlaskConical },
   ];
 
   // Resetear formulario al cambiar de pestaña
@@ -2196,6 +2205,8 @@ function AdminPanel({ options, onRefresh }) {
       newId = `${form.origen_id}F`;
     } else if (tab === "cosecha" && form.origen_id) {
       newId = `${form.origen_id}C`;
+    } else if (tab === "extraccion" && form.origen_id) {
+      newId = `${form.origen_id}E`;
     }
 
     if (newId && form.qr_id !== newId) {
@@ -2456,7 +2467,7 @@ function AdminPanel({ options, onRefresh }) {
             )}
 
             {/* Origen ID - para Vegetativo, Floracion, Cosecha */}
-            {(tab === "lote" || tab === "floracion" || tab === "cosecha") && (
+            {(tab === "lote" || tab === "floracion" || tab === "cosecha" || tab === "extraccion") && (
               <div className="md:col-span-2">
                 <label className="label-text">Lote / Planta Origen</label>
                 <select
@@ -2496,6 +2507,15 @@ function AdminPanel({ options, onRefresh }) {
                         value={typeof f === "string" ? f : f.id}
                       >
                         {typeof f === "string" ? f : f.id}
+                      </option>
+                    ))}
+                  {tab === "extraccion" &&
+                    (options.cosechas || []).map((c) => (
+                      <option
+                        key={typeof c === "string" ? c : c.id}
+                        value={typeof c === "string" ? c : c.id}
+                      >
+                        {typeof c === "string" ? c : c.id}
                       </option>
                     ))}
                 </select>
@@ -2556,6 +2576,47 @@ function AdminPanel({ options, onRefresh }) {
                   className="input-light"
                 />
               </div>
+            )}
+
+            {tab === "extraccion" && (
+              <>
+                <div>
+                  <label className="label-text">Peso Extracto (g)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.peso_extracto}
+                    onChange={(e) =>
+                      setForm({ ...form, peso_extracto: e.target.value })
+                    }
+                    required
+                    className="input-light"
+                  />
+                </div>
+                <div>
+                  <label className="label-text">Laboratorio</label>
+                  <input
+                    type="text"
+                    value={form.laboratorio}
+                    onChange={(e) =>
+                      setForm({ ...form, laboratorio: e.target.value })
+                    }
+                    placeholder="Laboratorio de extracción"
+                    required
+                    className="input-light"
+                  />
+                </div>
+                <div>
+                  <label className="label-text">Estado</label>
+                  <input
+                    type="text"
+                    value={form.estado}
+                    onChange={(e) => setForm({ ...form, estado: e.target.value })}
+                    placeholder="Extraído"
+                    className="input-light"
+                  />
+                </div>
+              </>
             )}
 
             {tab !== "clon" && tab !== "genetica" && (
@@ -2657,8 +2718,11 @@ function SearchView({ defaultQuery = "", currentRole = "operario" }) {
     "Cantidad",
     "Fecha",
     "Fecha Cosecha",
+    "Fecha Extracción",
     "Peso Húmedo (g)",
     "Peso Seco (g)",
+    "Peso Extracto (g)",
+    "Laboratorio",
     "Notas",
   ].filter((field) => result?.data?.[field] !== undefined);
 

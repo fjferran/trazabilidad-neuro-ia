@@ -180,6 +180,23 @@ const SHEET_DEFS = {
       "Notas",
     ],
   },
+  extraccion: {
+    key: "extraccion",
+    sheetName: "Sheet_Extraccion",
+    gid: 1808444444,
+    typeLabel: "Extracción",
+    range: "Sheet_Extraccion!A2:H",
+    idHeader: "ID Extracción",
+    headers: [
+      "ID Extracción",
+      "ID Origen",
+      "Fecha Extracción",
+      "Peso Extracto (g)",
+      "Laboratorio",
+      "Estado",
+      "Notas",
+    ],
+  },
 };
 
 const SHEET_ORDER = [
@@ -189,6 +206,7 @@ const SHEET_ORDER = [
   SHEET_DEFS.vegetativo,
   SHEET_DEFS.floracion,
   SHEET_DEFS.cosecha,
+  SHEET_DEFS.extraccion,
 ];
 
 function cleanCell(value) {
@@ -479,9 +497,10 @@ function buildNode(def, row, rowIndex) {
       ? cleanCell(row[1])
       : def.key === "clon"
         ? cleanCell(row[1])
-        : def.key === "vegetativo" ||
+      : def.key === "vegetativo" ||
             def.key === "floracion" ||
-            def.key === "cosecha"
+            def.key === "cosecha" ||
+            def.key === "extraccion"
           ? cleanCell(row[1])
           : null;
 
@@ -491,11 +510,13 @@ function buildNode(def, row, rowIndex) {
       : def.key === "clon"
         ? "madre"
         : def.key === "vegetativo"
-          ? "clon"
-          : def.key === "floracion"
-            ? "vegetativo"
+            ? "clon"
+            : def.key === "floracion"
+              ? "vegetativo"
             : def.key === "cosecha"
               ? "floracion"
+              : def.key === "extraccion"
+                ? "cosecha"
               : null;
 
   const image = normalizeImageUrl(
@@ -536,6 +557,7 @@ function buildMirrorIndex(rangeData) {
       vegetativo: [],
       floracion: [],
       cosecha: [],
+      extraccion: [],
     },
     activity: [],
     chartData: Array(12).fill(0),
@@ -615,6 +637,18 @@ function buildMirrorIndex(rangeData) {
       if (date.getFullYear() === currentYear && !Number.isNaN(peso)) {
         index.chartData[date.getMonth()] += peso;
       }
+    }
+  });
+
+  index.byType.extraccion.forEach((node) => {
+    if (node.data["Fecha Extracción"]) {
+      index.activity.push({
+        id: node.id,
+        action: `Extracción: ${node.data["Peso Extracto (g)"] || 0}g`,
+        date: node.data["Fecha Extracción"],
+        status: "done",
+        type: "extraccion",
+      });
     }
   });
 
@@ -1004,6 +1038,7 @@ function getDerivedId(type, origenId) {
   if (type === "lote") return `${origenId}-V`;
   if (type === "floracion") return `${origenId}F`;
   if (type === "cosecha") return `${origenId}C`;
+  if (type === "extraccion") return `${origenId}E`;
   return "";
 }
 
@@ -1042,28 +1077,29 @@ const MirrorCache = {
 
     this.isSyncing = true;
     try {
-      const ranges = [
-        "Sheet_Genetica!A2:Z",
-        "Sheet_Madres!A2:H",
-        "Sheet_Clones!A2:H",
-        "Sheet_Lotes!A2:H",
-        "Sheet_Floracion!A2:H",
-        "Sheet_Cosecha!A2:H",
-      ];
+      const ranges = SHEET_ORDER.map((def) => def.range);
+      const nextData = {};
+      for (const range of ranges) {
+        try {
+          const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range,
+          });
+          nextData[range] = response.data.values || [];
+        } catch (error) {
+          if (
+            error?.message?.includes("Unable to parse range") ||
+            error?.message?.includes("Range")
+          ) {
+            nextData[range] = [];
+            continue;
+          }
+          throw error;
+        }
+      }
 
-      // Batch Get: Traemos todas las pestañas de golpe en 1 sola llamada a la red (Ultra Rápido)
-      const response = await sheets.spreadsheets.values.batchGet({
-        spreadsheetId: SPREADSHEET_ID,
-        ranges: ranges,
-      });
-
-      const results = response.data.valueRanges;
-      if (results && results.length > 0) {
-        // Guardamos explícitamente usando la misma key que pedimos, no la que devuelve Google
-        // (porque Google añade el límite real de filas como A2:Z1000)
-        ranges.forEach((range, index) => {
-          this.data[range] = results[index].values || [];
-        });
+      if (Object.keys(nextData).length > 0) {
+        this.data = nextData;
         this.queue = await loadQueue();
         this.data = mergeQueuedRowsIntoRanges(this.data, this.queue);
         this.index = buildMirrorIndex(this.data);
@@ -1170,6 +1206,7 @@ app.get("/api/options", async (req, res) => {
         clones: [],
         vegetativos: [],
         floraciones: [],
+        cosechas: [],
       },
     });
   }
@@ -1216,6 +1253,7 @@ app.get("/api/options", async (req, res) => {
         floraciones: index.byType.floracion.map((node) =>
           serializeNodeForOption(node),
         ),
+        cosechas: index.byType.cosecha.map((node) => serializeNodeForOption(node)),
         activity: index.activity.slice(0, 5),
         chartData: index.chartData,
       },
@@ -1230,6 +1268,7 @@ app.get("/api/options", async (req, res) => {
         clones: [],
         vegetativos: [],
         floraciones: [],
+        cosechas: [],
       },
     });
   }
@@ -1340,6 +1379,17 @@ app.post("/api/entity", async (req, res) => {
     finalQrId = getDerivedId(type, originNode.id);
   }
 
+  if (type === "extraccion") {
+    const originNode = index.byId[(origen_id || "").toUpperCase()];
+    if (!originNode || originNode.type !== "cosecha") {
+      return res.status(400).json({
+        status: "error",
+        message: "La extracción debe originarse desde una cosecha válida",
+      });
+    }
+    finalQrId = getDerivedId(type, originNode.id);
+  }
+
   let sheetName, row;
   if (type === "genetica") {
     sheetName = "Sheet_Genetica";
@@ -1387,6 +1437,17 @@ app.post("/api/entity", async (req, res) => {
   } else if (type === "cosecha") {
     sheetName = "Sheet_Cosecha";
     row = [finalQrId, origen_id, fecha, peso_humedo, "", ubicacion, ""];
+  } else if (type === "extraccion") {
+    sheetName = "Sheet_Extraccion";
+    row = [
+      finalQrId,
+      origen_id,
+      fecha,
+      peso_extracto,
+      laboratorio || "",
+      estado || "Extraído",
+      notas || "",
+    ];
   } else {
     return res.status(400).json({ status: "error", message: "Tipo no válido" });
   }

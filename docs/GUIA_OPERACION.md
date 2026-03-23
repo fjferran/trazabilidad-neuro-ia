@@ -6,7 +6,7 @@ Esta guia describe como usar la aplicacion en operacion diaria, incluyendo la ca
 
 ## 2. Flujo general
 
-El sistema opera en 6 fases:
+El sistema opera en 7 fases:
 
 1. Genetica
 2. Madre
@@ -14,6 +14,7 @@ El sistema opera en 6 fases:
 4. Vegetativo
 5. Floracion
 6. Cosecha
+7. Extracción
 
 Adicionalmente, la app incluye una pestaña de `Labores` para checklist operativa diaria por turno.
 
@@ -100,7 +101,20 @@ Entrar en la seccion `Pasaporte`.
 - guardar
 - si el lote entra en almacenamiento, la sala IoT asociada debe resolverse a `Almacén Cosecha`
 
-## 3.6 Monitorizacion IoT por sala
+### 3.6 Alta de extracción
+
+- abrir la pestaña `EXTRACCIÓN` en `Pasaporte`
+- seleccionar una `Cosecha` como origen
+- indicar `Fecha Extracción`
+- indicar `Peso Extracto (g)`
+- indicar `Laboratorio`
+- indicar `Estado` si aplica
+- guardar
+- el sistema genera la ID automáticamente como `<ID cosecha>E`
+
+La extracción queda vinculada al lote de cosecha origen y pasa a formar parte de la trazabilidad del pasaporte.
+
+## 3.7 Monitorizacion IoT por sala
 
 La app trabaja con estas salas IoT cerradas:
 

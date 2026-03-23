@@ -66,7 +66,7 @@ Sistema de trazabilidad cannabica offline-first con QR, copia espejo local, sinc
 
 La app permite:
 
-- gestionar geneticas, madres, clones, vegetativos, floracion y cosecha
+- gestionar geneticas, madres, clones, vegetativos, floracion, cosecha y extracción
 - generar IDs acumulativas y QR por nodo
 - dar de alta geneticas y fases productivas en modo local-first
 - operar con usuarios locales y permisos por rol

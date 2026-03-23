@@ -44,6 +44,17 @@ La hoja maestra debe tener estas pestañas:
 - `Sheet_Lotes`
 - `Sheet_Floracion`
 - `Sheet_Cosecha`
+- `Sheet_Extraccion`
+
+Estructura recomendada de `Sheet_Extraccion`:
+
+- `ID Extracción`
+- `ID Origen`
+- `Fecha Extracción`
+- `Peso Extracto (g)`
+- `Laboratorio`
+- `Estado`
+- `Notas`
 
 Debe compartirse con la cuenta de servicio usada por `credenciales.json`.
 

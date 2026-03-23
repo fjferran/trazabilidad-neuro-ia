@@ -111,7 +111,7 @@ Aplica a:
 
 ### 7. Estructura funcional del sistema
 
-La trazabilidad se organiza en 6 niveles:
+La trazabilidad se organiza en 7 niveles:
 
 1. **Genetica Base** (`Sheet_Genetica`)
 2. **Planta Madre** (`Sheet_Madres`)
@@ -119,6 +119,7 @@ La trazabilidad se organiza en 6 niveles:
 4. **Lote Vegetativo** (`Sheet_Lotes`)
 5. **Lote de Floracion** (`Sheet_Floracion`)
 6. **Lote de Cosecha** (`Sheet_Cosecha`)
+7. **Lote de Extraccion** (`Sheet_Extraccion`)
 
 Cada nivel depende estrictamente del anterior.
 
@@ -188,6 +189,16 @@ Cada nivel depende estrictamente del anterior.
 - Peso Humedo (g)
 - Peso Seco (g)
 - Ubicacion
+- Notas
+
+#### 8.7 Sheet_Extraccion
+
+- ID Extraccion
+- ID Origen
+- Fecha Extraccion
+- Peso Extracto (g)
+- Laboratorio
+- Estado
 - Notas
 
 No deben alterarse columnas sin validacion del Responsable Tecnico y QA.
