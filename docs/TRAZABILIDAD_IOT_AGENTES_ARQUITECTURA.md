@@ -98,6 +98,8 @@ La aplica el backend Node/Express actual, ampliado con:
 - automatizacion por horario y pulsos temporizados
 - interpretacion guiada de reglas de actuadores en lenguaje natural
 
+La interpretación del chat de automatización es asistida por parsing determinista y puede evolucionar a un modo asistido por LLM con validación segura previa a la ejecución.
+
 ### 5.4 Capa de datos
 
 Incluye la base IoT local `SQLite`, separada del `local_mirror` de trazabilidad.

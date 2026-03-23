@@ -305,6 +305,13 @@ La pestaña `Actuadores` permite:
 - activar o desactivar la automatización de cada actuador
 - usar un chat guiado para interpretar reglas en lenguaje natural
 
+Flujo recomendado con el chat:
+
+1. escribir la instrucción
+2. pulsar `Interpretar`
+3. revisar actuador, sala, modo y parámetros entendidos
+4. pulsar `Aplicar regla`
+
 Campos programables por regla:
 
 - métrica
@@ -333,6 +340,10 @@ Ejemplo de horario:
 Ejemplo de pulso:
 
 - `Enciende el actuador Bomba riego clones durante 60 segundos.`
+
+Ejemplo de apagado por horario:
+
+- `Poner el actuador Luces floración en OFF de 20:00 a 08:00 en la Sala de Floración.`
 
 Buenas prácticas:
 

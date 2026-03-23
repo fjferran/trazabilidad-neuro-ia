@@ -230,6 +230,7 @@ Cada actuador define:
 - `relay`
 - `enabled`
 - bloque `automation`
+- opcionalmente reglas generadas desde el chat guiado de automatización
 
 Campos relevantes del bloque `automation`:
 
@@ -241,6 +242,12 @@ Campos relevantes del bloque `automation`:
 - `startTime`, `endTime`
 - `days`
 - `pulseSeconds`
+
+Modos disponibles:
+
+- `metric`
+- `schedule`
+- `pulse`
 
 El driver actual soportado es:
 
@@ -258,6 +265,8 @@ Para usar programación en lenguaje natural desde la app, el backend expone:
 
 - `POST /api/actuators/automation/parse`
 - `POST /api/actuators/automation/apply`
+
+La ejecución real sigue siendo validada por el backend antes de guardarse o ejecutarse.
 
 ## 10. Problemas comunes
 

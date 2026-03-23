@@ -121,6 +121,12 @@ Capacidades actuales:
 - activación y desactivación de automatizaciones por actuador
 - chat guiado para interpretar reglas en lenguaje natural
 
+Modos de automatización soportados:
+
+- `metric`
+- `schedule`
+- `pulse`
+
 Configuración base:
 
 - `server/actuators.json`

@@ -16,6 +16,7 @@
 | 1.1 | 22/03/2026 | Actualizacion de operativa real en Mini PC con broker MQTT autenticado, pestaña `Datos IoT`, historico, exportaciones y gestion manual de alertas. | Neuro-IA Team |
 | 1.2 | 22/03/2026 | Integracion de actuadores Shelly por IP con control manual y automatizacion condicionada por métricas IoT. | Neuro-IA Team |
 | 1.3 | 22/03/2026 | Ampliacion de actuadores con programación por horario, pulsos temporizados y chat guiado de automatización. | Neuro-IA Team |
+| 1.4 | 22/03/2026 | Formalizacion de modos `metric`, `schedule` y `pulse` en la operativa de actuadores. | Neuro-IA Team |
 
 ---
 
@@ -141,6 +142,9 @@ La actuación sobre hardware solo aplica cuando el actuador está configurado, v
 - **Cooldown**: periodo minimo de espera antes de volver a ejecutar la misma automatizacion sobre un actuador.
 - **Automatizacion por horario**: activacion o desactivacion de un actuador dentro de una franja horaria definida.
 - **Pulso temporizado**: accion ON u OFF durante un tiempo determinado, con reversión automática posterior.
+- **Modo `metric`**: automatizacion basada en una métrica IoT, comparador, umbral, duración y cooldown.
+- **Modo `schedule`**: automatizacion basada en horario de inicio y fin.
+- **Modo `pulse`**: accion temporal con activacion y reversión automática.
 
 ---
 
